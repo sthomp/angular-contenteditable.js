@@ -4,6 +4,13 @@ app.controller('myctrl',['$scope',function($scope){
 	$scope.model = {
 		title: ""
 	}
+
+
+
+
+    $scope.$on("richeditor:selection", function(e, data){
+        $scope.richEditorApi.setSelectionLink("www.yahoo.com")
+    });
 }]);
 
 /*
@@ -65,63 +72,51 @@ app.directive("ngContentditable", [function(){
     }
 }]);
 
+
+
+
+
+
+
+
 app.directive("richEditor", ['$compile', function($compile){
 	return {
         restrict: "E",
-        scope: {},
         template: "<div class='rich-editor' contenteditable='true'></div>",
         replace: true,
-        controller: ['$scope', '$element', '$timeout', '$window',function($scope, $element, $timeout, $window){
+        controller: ['$scope', '$element', '$timeout', '$window', '$document',function($scope, $element, $timeout, $window, $document){
+            $scope.richEditorApi = {};
 
-        	$scope.model = {
-        		richEditorToolbar: {
-        			isShown: false,
-        			element: $compile("<rich-editor-toolbar></rich-editor-toolbar>")($scope)
-        		}
-        	}
+            /* API */
 
-        	function hideRichEditorToolbar(){
-        		if($scope.model.richEditorToolbar.isShown){
-        			$scope.model.richEditorToolbar.element.remove();
-        			$scope.model.richEditorToolbar.isShown = false;
-        		}
-        	}
+            $scope.richEditorApi.toggleSelectionBold = function(){
+                document.execCommand("bold", null, false);
+            }
 
-        	function showRichEditorToolbar(){
-        		if(!$scope.model.richEditorToolbar.isShown){
-	        		$element.after($scope.model.richEditorToolbar.element);
-	        		$scope.model.richEditorToolbar.isShown = true;
-        		}
-        	}
+            $scope.richEditorApi.toggleSelectionItalic = function(){
+                document.execCommand("italic", null, false);
+            }
 
-        	// Get a text selection or return null
-        	function getMaybeSelection(){
-        		var selection = $window.getSelection();
-        		if(selection.type=="Range"){
-        			var range = selection.getRangeAt(0);
-        			showRichEditorToolbar();
-        		}
-        		else{
-        			hideRichEditorToolbar();
-        			return null;
-        		}
-        	}
+            $scope.richEditorApi.toggleSelectionUnderline = function(){
+                document.execCommand("underline", null, false);
+            }
 
-        	// Listen for mouse selection
+            $scope.richEditorApi.setSelectionLink = function(url){
+                document.execCommand("CreateLink", null, url);
+            }
+
+            /* Events */
+
+        	// Listen for text selection
         	$element.on("mouseup keyup", function(e){
-        		getMaybeSelection();
-        	});
+        		var selection = $window.getSelection();
+                if(selection.type=="Range"){
+                    $scope.$emit("richeditor:selection",{});
+                }
+                else{
 
-        	// If the user clicks anywhere except the toolbar element then close it
-        	$window.onclick = function (e) {
-        		if($scope.model.richEditorToolbar.isShown){
-        			if(!e.target.classList.contains('rich-editor')){
-        				var elem = angular.element(e.target);
-        				console.log("hide");
-        				hideRichEditorToolbar();
-        			}
-        		}
-	        };
+                }
+        	});
         }],
         link: function(scope, element, attrs){
         	
