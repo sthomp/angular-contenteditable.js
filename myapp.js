@@ -8,8 +8,15 @@ app.controller('myctrl',['$scope',function($scope){
 
 
 
-    $scope.$on("richeditor:selection", function(e, data){
-        $scope.richEditorApi.setSelectionLink("www.yahoo.com")
+    $scope.$on("richeditor:selection", function(ngevent, e){
+        
+    });
+
+    $scope.$on("richeditor:keypress", function(ngevent, e){
+        if(e.keyCode == 35){
+            $scope.richEditorApi.insertOrderedList();
+            console.log("hash");
+        }
     });
 }]);
 
@@ -87,6 +94,40 @@ app.directive("richEditor", ['$compile', function($compile){
         controller: ['$scope', '$element', '$timeout', '$window', '$document',function($scope, $element, $timeout, $window, $document){
             $scope.richEditorApi = {};
 
+            /* Text Editor */
+
+            function checkIfEmpty(){
+                if($element.text()==""){
+                    $element.html("");
+                }
+            }
+
+            // http://stackoverflow.com/questions/1197401/how-can-i-get-the-element-the-caret-is-in-with-javascript-when-using-contentedi
+            // by You
+            function getSelectionStart() {
+                var node = document.getSelection().anchorNode,
+                    startNode = (node && node.nodeType === 3 ? node.parentNode : node);
+                return startNode;
+            }
+
+            // When creating new lines use <p> instead of <div>
+            // by http://daviferreira.github.io/medium-editor
+            $element.on("keypress", function(e){
+                var node = getSelectionStart();
+                if (node) {
+                    node = node.tagName.toLowerCase();
+                }
+                if (e.which === 13 && !e.shiftKey) {
+                    document.execCommand('formatBlock', false, 'p');
+                }
+            });
+
+            $element.on("keyup", function(e){
+                if(e.keyCode == 8){
+                    checkIfEmpty();
+                }
+            })
+
             /* API */
 
             $scope.richEditorApi.toggleSelectionBold = function(){
@@ -105,18 +146,43 @@ app.directive("richEditor", ['$compile', function($compile){
                 document.execCommand("CreateLink", null, url);
             }
 
+            $scope.richEditorApi.setBlockH1 = function(){
+                document.execCommand("formatBlock", null, "H2");
+            }
+
+            $scope.richEditorApi.setBlockH2 = function(){
+                document.execCommand("formatBlock", null, "H3");
+            }
+
+            $scope.richEditorApi.clearBlock = function(){
+                document.execCommand("formatBlock", null, "p");
+            }
+
+            $scope.richEditorApi.insertUnorderedList = function(){
+                document.execCommand("insertUnorderedList", null, false);
+            }
+
+            $scope.richEditorApi.insertOrderedList = function(){
+                document.execCommand("insertOrderedList", null, false);
+            }
+
             /* Events */
 
         	// Listen for text selection
         	$element.on("mouseup keyup", function(e){
         		var selection = $window.getSelection();
                 if(selection.type=="Range"){
-                    $scope.$emit("richeditor:selection",{});
+                    $scope.$emit("richeditor:selection",e);
                 }
                 else{
 
                 }
         	});
+
+            // Listen for key presses
+            $element.on("keypress", function(e){
+                $scope.$emit("richeditor:keypress",e);
+            });
         }],
         link: function(scope, element, attrs){
         	
@@ -126,8 +192,7 @@ app.directive("richEditor", ['$compile', function($compile){
 .directive("richEditorToolbar", [function(){
 	return {
         restrict: "E",
-        scope: {},
-        templateUrl: "richEditorToolbar.html",
+        templateUrl: "angular-contenteditable.js/richEditorToolbar.html",
         replace: true,
         controller: ['$scope', '$element', '$timeout', '$window',function($scope, $element, $timeout, $window){
 

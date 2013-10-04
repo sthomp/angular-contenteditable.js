@@ -1,6 +1,13 @@
 <div class='rich-editor-toolbar'>
 	<ul>
-		<li ng-click="optionClicked()">B</li>
-		<li ng-click="optionClicked()">I</li>
+		<li><button ng-click="richEditorApi.toggleSelectionBold()">B</button></li>
+		<li><button ng-click="richEditorApi.toggleSelectionItalic()">I</button></li>
+		<li><button ng-click="richEditorApi.toggleSelectionUnderline()">U</button></li>
+		<li><button ng-click="richEditorApi.setSelectionLink('www.google.com')">href</button></li>
+		<li><button ng-click="richEditorApi.setBlockH1()">H1</button></li>
+		<li><button ng-click="richEditorApi.setBlockH2()">H2</button></li>
+		<li><button ng-click="richEditorApi.clearBlock()">Clear</button></li>
+		<li><button ng-click="richEditorApi.insertUnorderedList()">UL</button></li>
+		<li><button ng-click="richEditorApi.insertOrderedList()">OL</button></li>
 	</ul>
 </div>

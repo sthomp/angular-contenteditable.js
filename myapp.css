@@ -2,7 +2,3 @@
     content:attr(data-placeholder);
     color:#888;
 }
-
-.rich-editor-toolbar{
-	color:red;
-}
