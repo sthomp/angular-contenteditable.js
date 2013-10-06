@@ -1,24 +1,4 @@
-var app = angular.module("myapp",[]);
 
-app.controller('myctrl',['$scope',function($scope){
-	$scope.model = {
-		title: ""
-	}
-
-
-
-
-    $scope.$on("richeditor:selection", function(ngevent, e){
-        
-    });
-
-    $scope.$on("richeditor:keypress", function(ngevent, e){
-        if(e.keyCode == 35){
-            $scope.richEditorApi.insertOrderedList();
-            console.log("hash");
-        }
-    });
-}]);
 
 /*
  Optional Params:
@@ -26,7 +6,8 @@ app.controller('myctrl',['$scope',function($scope){
  data-maxlength="3"
  data-singleline
 */
-app.directive("ngContentditable", [function(){
+angular.module("richeditor",[])
+.directive("ngContentditable", [function(){
 	return {
         restrict: "A",
         require: '?ngModel', // get a hold of NgModelController
@@ -77,16 +58,8 @@ app.directive("ngContentditable", [function(){
 	        });
         }
     }
-}]);
-
-
-
-
-
-
-
-
-app.directive("richEditor", ['$compile', function($compile){
+}])
+.directive("richEditor", ['$compile', function($compile){
 	return {
         restrict: "E",
         template: "<div class='rich-editor' contenteditable='true'></div>",
@@ -128,6 +101,53 @@ app.directive("richEditor", ['$compile', function($compile){
                 }
             })
 
+            /* http://stackoverflow.com/questions/6690752/insert-html-at-caret-in-a-contenteditable-div/6691294#6691294
+            * by Tim Down */
+            function pasteHtmlAtCaret(html, selectPastedContent) {
+                var sel, range;
+                if (window.getSelection) {
+                    // IE9 and non-IE
+                    sel = window.getSelection();
+                    if (sel.getRangeAt && sel.rangeCount) {
+                        range = sel.getRangeAt(0);
+                        range.deleteContents();
+
+                        // Range.createContextualFragment() would be useful here but is
+                        // only relatively recently standardized and is not supported in
+                        // some browsers (IE9, for one)
+                        var el = document.createElement("div");
+                        el.innerHTML = html;
+                        var frag = document.createDocumentFragment(), node, lastNode;
+                        while ( (node = el.firstChild) ) {
+                            lastNode = frag.appendChild(node);
+                        }
+                        var firstNode = frag.firstChild;
+                        range.insertNode(frag);
+
+                        // Preserve the selection
+                        if (lastNode) {
+                            range = range.cloneRange();
+                            range.setStartAfter(lastNode);
+                            if (selectPastedContent) {
+                                range.setStartBefore(firstNode);
+                            } else {
+                                range.collapse(true);
+                            }
+                            sel.removeAllRanges();
+                            sel.addRange(range);
+                        }
+                    }
+                } else if ( (sel = document.selection) && sel.type != "Control") {
+                    // IE < 9
+                    var originalRange = sel.createRange();
+                    originalRange.collapse(true);
+                    sel.createRange().pasteHTML(html);
+                    var range = sel.createRange();
+                    range.setEndPoint("StartToStart", originalRange);
+                    range.select();
+                }
+            }
+
             /* API */
 
             $scope.richEditorApi.toggleSelectionBold = function(){
@@ -147,15 +167,15 @@ app.directive("richEditor", ['$compile', function($compile){
             }
 
             $scope.richEditorApi.setBlockH1 = function(){
-                document.execCommand("formatBlock", null, "H2");
+                document.execCommand("formatBlock", null, "<H2>");
             }
 
             $scope.richEditorApi.setBlockH2 = function(){
-                document.execCommand("formatBlock", null, "H3");
+                document.execCommand("formatBlock", null, "<H3>");
             }
 
             $scope.richEditorApi.clearBlock = function(){
-                document.execCommand("formatBlock", null, "p");
+                document.execCommand("formatBlock", null, "<P>");
             }
 
             $scope.richEditorApi.insertUnorderedList = function(){
@@ -164,6 +184,20 @@ app.directive("richEditor", ['$compile', function($compile){
 
             $scope.richEditorApi.insertOrderedList = function(){
                 document.execCommand("insertOrderedList", null, false);
+            }
+
+            $scope.richEditorApi.insertLinkBlock = function(url, text){
+                //document.execCommand("insertHTML", false, "<a href='" + url + "' contenteditable='false'>" + text + "</a>");
+                var newElement = document.createElement('a');
+                newElement.contentEditable=false;
+                newElement.href=url;
+                newElement.text=text;
+                //var range = window.getSelection().getRangeAt(0);
+                //range.insertNode(newElement);
+                //var embed = '<a href="www.google.com" contenteditable>blah blah</a>';
+                pasteHtmlAtCaret('<a href="' + url + '" contenteditable="false" target="_">' + text + '</a>', false);
+                //document.execCommand("Inserthtml", false, newElement);
+                //document.execCommand('insertunorderedlist', false, '');
             }
 
             /* Events */
@@ -189,16 +223,3 @@ app.directive("richEditor", ['$compile', function($compile){
         }
     }
 }])
-.directive("richEditorToolbar", [function(){
-	return {
-        restrict: "E",
-        templateUrl: "angular-contenteditable.js/richEditorToolbar.html",
-        replace: true,
-        controller: ['$scope', '$element', '$timeout', '$window',function($scope, $element, $timeout, $window){
-
-        }],
-        link: function(scope, element, attrs){
-
-        }
-    }
-}]);
