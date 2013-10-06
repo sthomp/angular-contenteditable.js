@@ -69,36 +69,21 @@ angular.module("richeditor",[])
 
             /* Text Editor */
 
-            function checkIfEmpty(){
-                if($element.text()==""){
-                    $element.html("");
-                }
-            }
-
-            // http://stackoverflow.com/questions/1197401/how-can-i-get-the-element-the-caret-is-in-with-javascript-when-using-contentedi
-            // by You
-            function getSelectionStart() {
-                var node = document.getSelection().anchorNode
-                var startNode = (node && node.nodeType === 3 ? node.parentNode : node);
-                return startNode;
-            }
-
-            // When creating new lines use <p> instead of <div>
             $element.on("keypress", function(e){
-                if (e.which === 13 /* enter */ && !e.shiftKey) {
-                    var node = getSelectionStart();
-                    if(node.tagName.toLowerCase() == 'p' || node.tagName.toLowerCase() == 'div'){
-                        document.execCommand('formatBlock', false, '<p>');
-                    }
-                    
+                if($element.text().length==0){
+                    document.execCommand('formatBlock', false, '<p>');
                 }
             });
 
+            // When creating new lines use <p> instead of <div>
             $element.on("keyup", function(e){
-                if(e.keyCode == 8){
-                    checkIfEmpty();
+                if (e.which === 13 /* enter */) {
+                    var blockType = document.queryCommandValue("formatBlock"); 
+                    if(blockType == 'div'){
+                        document.execCommand('formatBlock', false, '<p>');
+                    }
                 }
-            })
+            });
 
             /* http://stackoverflow.com/questions/6690752/insert-html-at-caret-in-a-contenteditable-div/6691294#6691294
             * by Tim Down */
