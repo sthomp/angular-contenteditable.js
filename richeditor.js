@@ -78,20 +78,19 @@ angular.module("richeditor",[])
             // http://stackoverflow.com/questions/1197401/how-can-i-get-the-element-the-caret-is-in-with-javascript-when-using-contentedi
             // by You
             function getSelectionStart() {
-                var node = document.getSelection().anchorNode,
-                    startNode = (node && node.nodeType === 3 ? node.parentNode : node);
+                var node = document.getSelection().anchorNode
+                var startNode = (node && node.nodeType === 3 ? node.parentNode : node);
                 return startNode;
             }
 
             // When creating new lines use <p> instead of <div>
-            // by http://daviferreira.github.io/medium-editor
             $element.on("keypress", function(e){
-                var node = getSelectionStart();
-                if (node) {
-                    node = node.tagName.toLowerCase();
-                }
-                if (e.which === 13 && !e.shiftKey) {
-                    document.execCommand('formatBlock', false, 'p');
+                if (e.which === 13 /* enter */ && !e.shiftKey) {
+                    var node = getSelectionStart();
+                    if(node.tagName.toLowerCase() == 'p' || node.tagName.toLowerCase() == 'div'){
+                        document.execCommand('formatBlock', false, '<p>');
+                    }
+                    
                 }
             });
 
