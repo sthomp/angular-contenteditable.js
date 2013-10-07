@@ -71,7 +71,7 @@ angular.module("richeditor",[])
 
             $element.on("keypress", function(e){
                 if($element.text().length==0){
-                    document.execCommand('formatBlock', false, '<p>');
+                    document.execCommand('formatBlock', false, '<P>');
                 }
             });
 
@@ -80,8 +80,9 @@ angular.module("richeditor",[])
                 if (e.which === 13 /* enter */) {
                     var blockType = document.queryCommandValue("formatBlock"); 
                     if(blockType == 'div'){
-                        document.execCommand('formatBlock', false, '<p>');
+                        document.execCommand('formatBlock', false, '<P>');
                     }
+                    
                 }
             });
 
@@ -171,17 +172,7 @@ angular.module("richeditor",[])
             }
 
             $scope.richEditorApi.insertLinkBlock = function(url, text){
-                //document.execCommand("insertHTML", false, "<a href='" + url + "' contenteditable='false'>" + text + "</a>");
-                var newElement = document.createElement('a');
-                newElement.contentEditable=false;
-                newElement.href=url;
-                newElement.text=text;
-                //var range = window.getSelection().getRangeAt(0);
-                //range.insertNode(newElement);
-                //var embed = '<a href="www.google.com" contenteditable>blah blah</a>';
                 pasteHtmlAtCaret('<a href="' + url + '" contenteditable="false" target="_">' + text + '</a>', false);
-                //document.execCommand("Inserthtml", false, newElement);
-                //document.execCommand('insertunorderedlist', false, '');
             }
 
             /* Events */
@@ -197,9 +188,17 @@ angular.module("richeditor",[])
                 }
         	});
 
+            $element.on("click", function(e){
+                var selection = $window.getSelection();
+            });
+
             // Listen for key presses
             $element.on("keypress", function(e){
                 $scope.$emit("richeditor:keypress",e);
+            });
+
+            $element.on("keyup", function(e){
+                $scope.$emit("richeditor:keyup",e);
             });
         }],
         link: function(scope, element, attrs){
