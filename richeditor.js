@@ -105,7 +105,7 @@ angular.module("richeditor",[])
             }
 
             $scope.richEditorApi.removeLink = function(){
-                var currentElement = getSelectionBoundaryElement(true);
+                // TODO: Need a better way to remove the link
                 document.execCommand("unlink", null, null);
             }
 
@@ -129,8 +129,9 @@ angular.module("richeditor",[])
                 document.execCommand("insertOrderedList", null, false);
             }
 
-            $scope.richEditorApi.insertLinkBlock = function(url, text){
-                pasteHtmlAtCaret('<a href="' + url + '" contenteditable="false" target="_">' + text + '</a>', false);
+            $scope.richEditorApi.insertLinkBlock = function(url, text, clazz){
+                var html = '<a href="' + url + '" contenteditable="false" target="_" class ="' + clazz + '">' + text + '</a>';
+                pasteHtmlAtCaret(html, false);
             }
 
             $scope.richEditorApi.isBold = function(){
@@ -163,6 +164,13 @@ angular.module("richeditor",[])
 
             $scope.richEditorApi.isLink = function(){
                 var currentElement = getSelectionBoundaryElement(true);
+                // TODO: Need to traverse up the DOM from the current element
+                return currentElement.tagName=="A";
+            }
+
+            $scope.richEditorApi.isLinkWithClass = function(clazz){
+                var currentElement = getSelectionBoundaryElement(true);
+                // TODO: Also check the class
                 return currentElement.tagName=="A";
             }
 
