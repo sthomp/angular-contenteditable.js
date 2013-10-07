@@ -86,6 +86,114 @@ angular.module("richeditor",[])
                 }
             });
 
+            /* API */
+
+            $scope.richEditorApi.toggleSelectionBold = function(){
+                document.execCommand("bold", null, false);
+            }
+
+            $scope.richEditorApi.toggleSelectionItalic = function(){
+                document.execCommand("italic", null, false);
+            }
+
+            $scope.richEditorApi.toggleSelectionUnderline = function(){
+                document.execCommand("underline", null, false);
+            }
+
+            $scope.richEditorApi.setSelectionLink = function(url){
+                document.execCommand("CreateLink", null, url);
+            }
+
+            $scope.richEditorApi.removeLink = function(){
+                var currentElement = getSelectionBoundaryElement(true);
+                document.execCommand("unlink", null, null);
+            }
+
+            $scope.richEditorApi.setBlockH1 = function(){
+                document.execCommand("formatBlock", null, "<H2>");
+            }
+
+            $scope.richEditorApi.setBlockH2 = function(){
+                document.execCommand("formatBlock", null, "<H3>");
+            }
+
+            $scope.richEditorApi.clearBlock = function(){
+                document.execCommand("formatBlock", null, "<P>");
+            }
+
+            $scope.richEditorApi.toggleUnorderedList = function(){
+                document.execCommand("insertUnorderedList", null, false);
+            }
+
+            $scope.richEditorApi.toggleOrderedList = function(){
+                document.execCommand("insertOrderedList", null, false);
+            }
+
+            $scope.richEditorApi.insertLinkBlock = function(url, text){
+                pasteHtmlAtCaret('<a href="' + url + '" contenteditable="false" target="_">' + text + '</a>', false);
+            }
+
+            $scope.richEditorApi.isBold = function(){
+                return document.queryCommandState('bold');
+            }
+
+            $scope.richEditorApi.isItalic = function(){
+                return document.queryCommandState('italic');
+            }
+
+            $scope.richEditorApi.isUnderline = function(){
+                return document.queryCommandState('underline');
+            }
+
+            $scope.richEditorApi.isH1 = function(){
+                return document.queryCommandValue('formatBlock') == "h2";
+            }
+
+            $scope.richEditorApi.isH2 = function(){
+                return document.queryCommandValue('formatBlock') == "h3";
+            }
+
+            $scope.richEditorApi.isOL = function(){
+                return document.queryCommandState('insertOrderedList');
+            }
+
+            $scope.richEditorApi.isUL = function(){
+                return document.queryCommandState('insertUnorderedList');
+            }
+
+            $scope.richEditorApi.isLink = function(){
+                var currentElement = getSelectionBoundaryElement(true);
+                return currentElement.tagName=="A";
+            }
+
+            /* Events */
+
+        	// Listen for text selection
+        	$element.on("mouseup keyup", function(e){
+        		var selection = $window.getSelection();
+                if(selection.type=="Range"){
+                    $scope.$emit("richeditor:selection",e);
+                }
+                else{
+
+                }
+        	});
+
+            $element.on("click", function(e){
+                var selection = $window.getSelection();
+            });
+
+            // Listen for key presses
+            $element.on("keypress", function(e){
+                $scope.$emit("richeditor:keypress",e);
+            });
+
+            $element.on("keyup", function(e){
+                $scope.$emit("richeditor:keyup",e);
+            });
+
+            /* Helper Functions */
+
             /* http://stackoverflow.com/questions/6690752/insert-html-at-caret-in-a-contenteditable-div/6691294#6691294
             * by Tim Down */
             function pasteHtmlAtCaret(html, selectPastedContent) {
@@ -133,73 +241,41 @@ angular.module("richeditor",[])
                 }
             }
 
-            /* API */
+            // http://stackoverflow.com/questions/1335252/how-can-i-get-the-dom-element-which-contains-the-current-selection/1335347#1335347 
+            // by Tim Down
+            function getSelectionBoundaryElement(isStart) {
+                var range, sel, container;
+                if (document.selection) {
+                    range = document.selection.createRange();
+                    range.collapse(isStart);
+                    return range.parentElement();
+                } else {
+                    sel = window.getSelection();
+                    if (sel.getRangeAt) {
+                        if (sel.rangeCount > 0) {
+                            range = sel.getRangeAt(0);
+                        }
+                    } else {
+                        // Old WebKit
+                        range = document.createRange();
+                        range.setStart(sel.anchorNode, sel.anchorOffset);
+                        range.setEnd(sel.focusNode, sel.focusOffset);
 
-            $scope.richEditorApi.toggleSelectionBold = function(){
-                document.execCommand("bold", null, false);
-            }
+                        // Handle the case when the selection was selected backwards (from the end to the start in the document)
+                        if (range.collapsed !== sel.isCollapsed) {
+                            range.setStart(sel.focusNode, sel.focusOffset);
+                            range.setEnd(sel.anchorNode, sel.anchorOffset);
+                        }
+                   }
 
-            $scope.richEditorApi.toggleSelectionItalic = function(){
-                document.execCommand("italic", null, false);
-            }
+                    if (range) {
+                       container = range[isStart ? "startContainer" : "endContainer"];
 
-            $scope.richEditorApi.toggleSelectionUnderline = function(){
-                document.execCommand("underline", null, false);
-            }
-
-            $scope.richEditorApi.setSelectionLink = function(url){
-                document.execCommand("CreateLink", null, url);
-            }
-
-            $scope.richEditorApi.setBlockH1 = function(){
-                document.execCommand("formatBlock", null, "<H2>");
-            }
-
-            $scope.richEditorApi.setBlockH2 = function(){
-                document.execCommand("formatBlock", null, "<H3>");
-            }
-
-            $scope.richEditorApi.clearBlock = function(){
-                document.execCommand("formatBlock", null, "<P>");
-            }
-
-            $scope.richEditorApi.insertUnorderedList = function(){
-                document.execCommand("insertUnorderedList", null, false);
-            }
-
-            $scope.richEditorApi.insertOrderedList = function(){
-                document.execCommand("insertOrderedList", null, false);
-            }
-
-            $scope.richEditorApi.insertLinkBlock = function(url, text){
-                pasteHtmlAtCaret('<a href="' + url + '" contenteditable="false" target="_">' + text + '</a>', false);
-            }
-
-            /* Events */
-
-        	// Listen for text selection
-        	$element.on("mouseup keyup", function(e){
-        		var selection = $window.getSelection();
-                if(selection.type=="Range"){
-                    $scope.$emit("richeditor:selection",e);
+                       // Check if the container is a text node and return its parent if so
+                       return container.nodeType === 3 ? container.parentNode : container;
+                    }   
                 }
-                else{
-
-                }
-        	});
-
-            $element.on("click", function(e){
-                var selection = $window.getSelection();
-            });
-
-            // Listen for key presses
-            $element.on("keypress", function(e){
-                $scope.$emit("richeditor:keypress",e);
-            });
-
-            $element.on("keyup", function(e){
-                $scope.$emit("richeditor:keyup",e);
-            });
+            }
         }],
         link: function(scope, element, attrs){
         	
