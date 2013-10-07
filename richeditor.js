@@ -86,6 +86,11 @@ angular.module("richeditor",[])
                 }
             });
 
+            $element.on("paste", function(e){
+                e.preventDefault();
+                document.execCommand('insertHTML', false, e.clipboardData.getData('text/plain')/*.replace(/[\r\n]/g, '<br>')*/);
+            });
+
             /* API */
 
             $scope.richEditorApi.toggleSelectionBold = function(){
@@ -162,16 +167,32 @@ angular.module("richeditor",[])
                 return document.queryCommandState('insertUnorderedList');
             }
 
+            function traverseUpDom(elem, fn){
+                if(fn(elem)){
+                    return true;
+                }
+                else if(elem == $element[0]){
+                    return false;
+                }
+                else{
+                    return traverseUpDom(elem.parentNode, fn);
+                }
+            }
+
             $scope.richEditorApi.isLink = function(){
                 var currentElement = getSelectionBoundaryElement(true);
-                // TODO: Need to traverse up the DOM from the current element
-                return currentElement.tagName=="A";
+                var isLink = traverseUpDom(currentElement, function(elem){
+                    return elem.tagName.toLowerCase() == "a";
+                });
+                return isLink;
             }
 
             $scope.richEditorApi.isLinkWithClass = function(clazz){
                 var currentElement = getSelectionBoundaryElement(true);
-                // TODO: Also check the class
-                return currentElement.tagName=="A";
+                var isLinkWithClass = traverseUpDom(currentElement, function(elem){
+                    return (elem.tagName.toLowerCase() == "a") && (elem.className.split(" ").indexOf(clazz) != -1);
+                });
+                return isLinkWithClass;
             }
 
             /* Events */
