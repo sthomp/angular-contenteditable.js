@@ -88,7 +88,9 @@ angular.module("richeditor",[])
 
             $element.on("paste", function(e){
                 e.preventDefault();
-                document.execCommand('insertHTML', false, e.clipboardData.getData('text/plain')/*.replace(/[\r\n]/g, '<br>')*/);
+                var pastedText = e.originalEvent.clipboardData.getData('text/plain');
+                document.execCommand('insertHTML', false, pastedText/*.replace(/[\r\n]/g, '<br>')*/);
+                
             });
 
             /* API */
