@@ -7,6 +7,27 @@
  data-singleline
 */
 angular.module("richeditor",[])
+// https://github.com/angular/angular.js/issues/2690
+.factory('debounce', ['$timeout', function ($timeout) {
+    return function(fn, timeout, apply){ // debounce fn
+        timeout = angular.isUndefined(timeout) ? 0 : timeout;
+        apply = angular.isUndefined(apply) ? true : apply; // !!default is true! most suitable to my experience
+        var nthCall = 0;
+        return function(){ // intercepting fn
+            var that = this;
+            var argz = arguments;
+            nthCall++;
+            var later = (function(version){
+                return function(){
+                    if (version === nthCall){
+                        return fn.apply(that, argz);
+                    }
+                };
+            })(nthCall);
+            return $timeout(later, timeout, apply);
+        };
+    };
+}])
 .directive("ngContentditable", [function(){
 	return {
         restrict: "A",
@@ -59,7 +80,7 @@ angular.module("richeditor",[])
         }
     }
 }])
-.directive("richEditor", ['$compile', function($compile){
+.directive("richEditor", ['$compile', 'debounce',function($compile, debounce){
 	return {
         restrict: "E",
         template: "<div class='rich-editor' contenteditable='true'></div>",
@@ -174,9 +195,17 @@ angular.module("richeditor",[])
                 return document.queryCommandState('insertUnorderedList');
             }
 
+            // Traverse up from the current node
+            // Return true if the given condition is met
             function traverseUpDom(elem, fn){
-                if(fn(elem)){
+                if(!elem || !fn){
+                    return false;
+                }
+                else if(fn(elem)){
                     return true;
+                }
+                else if(elem.nodeName.toLowerCase()=="body"){
+                    return false;
                 }
                 else if(elem == $element[0]){
                     return false;
@@ -210,24 +239,34 @@ angular.module("richeditor",[])
             }
 
             /* Events */
+            
 
             // Listen for text selection from keyboard
-            $document.on("mouseup", function(e){
+            // Might not need these raw events given the selectionchange event
+            // unless we want to support older browsers
+         //    $document.on("mouseup", function(e){
+         //        var selection = $window.getSelection();
+         //        if(selection.type=="Range" && isElementInsideEditor(selection.focusNode)){
+         //            $scope.$emit("richeditor:selection",e);
+         //        }
+         //    });
+         //    // Listen text selection from mouse
+        	// $element.on("keyup", function(e){
+        	// 	var selection = $window.getSelection();
+         //        if(selection.type=="Range"){
+         //            $scope.$emit("richeditor:selection",e);
+         //        }
+        	// });
+            var checkForElementSelection = debounce(function(e){
                 var selection = $window.getSelection();
                 if(selection.type=="Range" && isElementInsideEditor(selection.focusNode)){
                     $scope.$emit("richeditor:selection",e);
                 }
+                console.log("Fire Selection");
+            }, 300);
+            $document.on("selectionchange", function(e){
+                checkForElementSelection(e);
             });
-            // Listen text selection from mouse
-        	$element.on("keyup", function(e){
-        		var selection = $window.getSelection();
-                if(selection.type=="Range"){
-                    $scope.$emit("richeditor:selection",e);
-                }
-                else{
-
-                }
-        	});
 
             $element.on("click", function(e){
                 var selection = $window.getSelection();
