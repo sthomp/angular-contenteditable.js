@@ -88,8 +88,13 @@ angular.module("richeditor",[])
 
             $element.on("paste", function(e){
                 e.preventDefault();
+                var html = '';
                 var pastedText = e.originalEvent.clipboardData.getData('text/plain');
-                document.execCommand('insertHTML', false, pastedText/*.replace(/[\r\n]/g, '<br>')*/);
+                var paragraphs = pastedText.split(/[\r\n]/g);
+                for (p = 0; p < paragraphs.length; p += 1) {
+                    html += '<p>' + paragraphs[p] + '</p>';
+                }
+                document.execCommand('insertHTML', false, html);
                 
             });
 
@@ -137,7 +142,7 @@ angular.module("richeditor",[])
             }
 
             $scope.richEditorApi.insertLinkBlock = function(url, text, clazz){
-                var html = '<a href="' + url + '" contenteditable="false" target="_" class ="' + clazz + '">' + text + '</a>';
+                var html = '<a href="' + url + '" contenteditable="false" target="_" class ="' + clazz + '" readonly>' + text + '</a>';
                 pasteHtmlAtCaret(html, false);
             }
 
@@ -181,6 +186,13 @@ angular.module("richeditor",[])
                 }
             }
 
+            function isElementInsideEditor(elem){
+                var result =  traverseUpDom(elem, function(elem){
+                    return elem == $element[0];
+                });
+                return result;
+            }
+
             $scope.richEditorApi.isLink = function(){
                 var currentElement = getSelectionBoundaryElement(true);
                 var isLink = traverseUpDom(currentElement, function(elem){
@@ -199,8 +211,15 @@ angular.module("richeditor",[])
 
             /* Events */
 
-        	// Listen for text selection
-        	$element.on("mouseup keyup", function(e){
+            // Listen for text selection from keyboard
+            $document.on("mouseup", function(e){
+                var selection = $window.getSelection();
+                if(selection.type=="Range" && isElementInsideEditor(selection.focusNode)){
+                    $scope.$emit("richeditor:selection",e);
+                }
+            });
+            // Listen text selection from mouse
+        	$element.on("keyup", function(e){
         		var selection = $window.getSelection();
                 if(selection.type=="Range"){
                     $scope.$emit("richeditor:selection",e);
