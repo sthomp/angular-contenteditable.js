@@ -268,10 +268,6 @@ angular.module("richeditor",[])
                 checkForElementSelection(e);
             });
 
-            $element.on("click", function(e){
-                var selection = $window.getSelection();
-            });
-
             // Listen for key presses
             $element.on("keypress", function(e){
                 $scope.$emit("richeditor:keypress",e);
