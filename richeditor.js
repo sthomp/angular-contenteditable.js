@@ -86,7 +86,13 @@ angular.module("richeditor",[])
         template: "<div class='rich-editor' contenteditable='true'></div>",
         replace: true,
         controller: ['$scope', '$element', '$timeout', '$window', '$document',function($scope, $element, $timeout, $window, $document){
-            $scope.richEditorApi = {};
+            $scope.richEditorApi = {
+                captureRange: {
+                    elem: null,
+                    start: null,
+                    end: null
+                }
+            };
 
             /* Text Editor */
 
@@ -105,6 +111,12 @@ angular.module("richeditor",[])
                     }
                     
                 }
+                captureElementInput();
+                $scope.$emit("richeditor:keyup",e);
+            });
+
+            $element.on("textInput", function(e){
+                $scope.$emit("richeditor:textInput",e);
             });
 
             $element.on("paste", function(e){
@@ -238,6 +250,37 @@ angular.module("richeditor",[])
                 return isLinkWithClass;
             }
 
+            $scope.richEditorApi.getCapturedElementInput = function(){
+                return $scope.richEditorApi.capturedElementInput;
+            }
+
+            $scope.richEditorApi.startCapture = function(){
+                var selection = document.getSelection();
+                var startOffset = selection.anchorOffset;
+                var elem = selection.anchorNode;
+                $scope.richEditorApi.captureRange.elem = elem;
+                $scope.richEditorApi.captureRange.start = startOffset;
+            }
+
+            $scope.richEditorApi.endCapture = function(){
+                var selection = document.getSelection();
+                var elem = selection.anchorNode;
+                var endOffset = selection.anchorOffset;
+                if(elem == $scope.richEditorApi.captureRange.elem){
+                    var range = document.createRange();
+                    range.setStart(elem, $scope.richEditorApi.captureRange.start);
+                    range.setEnd(elem, endOffset);
+                    console.log(range.toString());
+                }
+                else{
+                    console.log("Contents are in different elements");
+                }
+            }
+
+            function captureElementInput(){
+                $scope.richEditorApi.capturedElementInput = document.getSelection().anchorNode.nodeValue;
+            }
+
             /* Events */
             
 
@@ -262,19 +305,17 @@ angular.module("richeditor",[])
                 if(selection.type=="Range" && isElementInsideEditor(selection.focusNode)){
                     $scope.$emit("richeditor:selection",e);
                 }
-                console.log("Fire Selection");
             }, 300);
             $document.on("selectionchange", function(e){
                 checkForElementSelection(e);
             });
 
-            // Listen for key presses
             $element.on("keypress", function(e){
                 $scope.$emit("richeditor:keypress",e);
             });
 
-            $element.on("keyup", function(e){
-                $scope.$emit("richeditor:keyup",e);
+            $element.on("keydown", function(e){
+                $scope.$emit("richeditor:keydown",e);
             });
 
             /* Helper Functions */
