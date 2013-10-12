@@ -87,11 +87,7 @@ angular.module("richeditor",[])
         replace: true,
         controller: ['$scope', '$element', '$timeout', '$window', '$document',function($scope, $element, $timeout, $window, $document){
             $scope.richEditorApi = {
-                captureRange: {
-                    elem: null,
-                    start: null,
-                    end: null
-                }
+                
             };
 
             /* Text Editor */
@@ -111,7 +107,6 @@ angular.module("richeditor",[])
                     }
                     
                 }
-                captureElementInput();
                 $scope.$emit("richeditor:keyup",e);
             });
 
@@ -254,31 +249,55 @@ angular.module("richeditor",[])
                 return $scope.richEditorApi.capturedElementInput;
             }
 
-            $scope.richEditorApi.startCapture = function(){
-                var selection = document.getSelection();
-                var startOffset = selection.anchorOffset;
-                var elem = selection.anchorNode;
-                $scope.richEditorApi.captureRange.elem = elem;
-                $scope.richEditorApi.captureRange.start = startOffset;
+            /* Capture Text Input */
+
+            // http://stackoverflow.com/questions/1614658/how-do-you-undo-surroundcontents-in-javascript
+            function unwrap(who){
+                var pa= who.parentNode;
+                while(who.firstChild){
+                    pa.insertBefore(who.firstChild, who);
+                }
+                who.remove();
             }
 
-            $scope.richEditorApi.endCapture = function(){
-                var selection = document.getSelection();
-                var elem = selection.anchorNode;
-                var endOffset = selection.anchorOffset;
-                if(elem == $scope.richEditorApi.captureRange.elem){
+            $scope.richEditorApi.capture = {
+                elem: document.createElement("span"),
+                isCapturing: false, // This is set through a watch on elem.parentElement
+                start: function(){
+                    var newnode = $scope.richEditorApi.capture.elem;
+                    newnode.innerText='a';
+                    newnode.className='capture-range';
+                    document.getSelection().getRangeAt(0).insertNode(newnode);
                     var range = document.createRange();
-                    range.setStart(elem, $scope.richEditorApi.captureRange.start);
-                    range.setEnd(elem, endOffset);
-                    console.log(range.toString());
-                }
-                else{
-                    console.log("Contents are in different elements");
+                    range.selectNodeContents(newnode);
+                    var selection = window.getSelection();
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                    $scope.richEditorApi.capture.isCapturing = true;
+                },
+                cancel: function(){
+                    unwrap($scope.richEditorApi.capture.elem);
+                    $scope.richEditorApi.capture.isCapturing = false;
+                    // var selection = document.getSelection();
+                    // var elem = selection.anchorNode;
+                    // var endOffset = selection.anchorOffset;
+                    // if(elem == $scope.richEditorApi.captureRange.elem){
+                    //     var range = document.createRange();
+                    //     range.setStart(elem, $scope.richEditorApi.captureRange.start);
+                    //     range.setEnd(elem, endOffset);
+                    //     console.log(range.toString());
+                    // }
+                    // else{
+                    //     console.log("Contents are in different elements");
+                    // }
+                },
+                get: function(){
+                    return $scope.richEditorApi.capture.elem.innerText;
                 }
             }
 
-            function captureElementInput(){
-                $scope.richEditorApi.capturedElementInput = document.getSelection().anchorNode.nodeValue;
+            $scope.richEditorApi.getCapturedInput = function(){
+                
             }
 
             /* Events */
