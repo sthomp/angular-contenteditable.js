@@ -245,10 +245,6 @@ angular.module("richeditor",[])
                 return isLinkWithClass;
             }
 
-            $scope.richEditorApi.getCapturedElementInput = function(){
-                return $scope.richEditorApi.capturedElementInput;
-            }
-
             /* Capture Text Input */
 
             // http://stackoverflow.com/questions/1614658/how-do-you-undo-surroundcontents-in-javascript
@@ -273,11 +269,9 @@ angular.module("richeditor",[])
                     var selection = window.getSelection();
                     selection.removeAllRanges();
                     selection.addRange(range);
-                    $scope.richEditorApi.capture.isCapturing = true;
                 },
                 cancel: function(){
                     unwrap($scope.richEditorApi.capture.elem);
-                    $scope.richEditorApi.capture.isCapturing = false;
                     // var selection = document.getSelection();
                     // var elem = selection.anchorNode;
                     // var endOffset = selection.anchorOffset;
@@ -295,10 +289,17 @@ angular.module("richeditor",[])
                     return $scope.richEditorApi.capture.elem.innerText;
                 }
             }
-
-            $scope.richEditorApi.getCapturedInput = function(){
-                
-            }
+            // To figure out if we're currently capturing input we can check
+            // if the capture element is currently on the screen by looking
+            // if it has a parent element
+            $scope.$watch('richEditorApi.capture.elem.parentNode', function() {
+                if($scope.richEditorApi.capture.elem.parentNode==null){
+                    $scope.richEditorApi.capture.isCapturing = false;
+                }
+                else{
+                    $scope.richEditorApi.capture.isCapturing = true;
+                }
+            });
 
             /* Events */
             
@@ -334,7 +335,14 @@ angular.module("richeditor",[])
             });
 
             $element.on("keydown", function(e){
+                // Emit the keydown event
                 $scope.$emit("richeditor:keydown",e);
+
+                // If we were capturing input then cancel it
+                if($scope.richEditorApi.capture.isCapturing && e.keyCode == 13 /* enter */){
+                    console.log($scope.richEditorApi.capture.get());
+                    $scope.richEditorApi.capture.cancel();
+                }
             });
 
             /* Helper Functions */
