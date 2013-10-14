@@ -28,6 +28,21 @@ angular.module("richeditor",[])
         };
     };
 }])
+.directive("stNotEditable", [function(){
+    return {
+        restrict: "A",
+        replace: true,
+        controller: ['$scope', '$document', function($scope,$document){
+            $document.on('selectionchange', function(e){
+                // e.preventDefault();
+                // console.log('change')
+            });
+        }],
+        link: function(scope,element,attrs){
+            
+        }
+    }
+}])
 .directive("ngContentditable", [function(){
 	return {
         restrict: "A",
@@ -111,6 +126,7 @@ angular.module("richeditor",[])
             });
 
             $element.on("textInput", function(e){
+                console.log("Start textInput");
                 $scope.$emit("richeditor:textInput",e);
             });
 
@@ -118,12 +134,7 @@ angular.module("richeditor",[])
                 e.preventDefault();
                 var html = '';
                 var pastedText = e.originalEvent.clipboardData.getData('text/plain');
-                var paragraphs = pastedText.split(/[\r\n]/g);
-                for (p = 0; p < paragraphs.length; p += 1) {
-                    html += '<p>' + paragraphs[p] + '</p>';
-                }
-                document.execCommand('insertHTML', false, html);
-                
+                document.execCommand('insertText', false, pastedText);
             });
 
             /* API */
@@ -245,6 +256,17 @@ angular.module("richeditor",[])
                 return isLinkWithClass;
             }
 
+            $scope.richEditorApi.focus = function(){
+                $element.focus();
+                // set cursor at the end
+                var range = document.createRange();
+                range.selectNodeContents($element[0]);
+                range.collapse(false);
+                var selection = $window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }
+
             /* Capture Text Input */
 
             // http://stackoverflow.com/questions/1614658/how-do-you-undo-surroundcontents-in-javascript
@@ -266,27 +288,31 @@ angular.module("richeditor",[])
                     document.getSelection().getRangeAt(0).insertNode(newnode);
                     var range = document.createRange();
                     range.selectNodeContents(newnode);
-                    var selection = window.getSelection();
+                    var selection = $window.getSelection();
                     selection.removeAllRanges();
                     selection.addRange(range);
                 },
                 cancel: function(){
-                    unwrap($scope.richEditorApi.capture.elem);
-                    // var selection = document.getSelection();
-                    // var elem = selection.anchorNode;
-                    // var endOffset = selection.anchorOffset;
-                    // if(elem == $scope.richEditorApi.captureRange.elem){
-                    //     var range = document.createRange();
-                    //     range.setStart(elem, $scope.richEditorApi.captureRange.start);
-                    //     range.setEnd(elem, endOffset);
-                    //     console.log(range.toString());
-                    // }
-                    // else{
-                    //     console.log("Contents are in different elements");
-                    // }
+                    $timeout(function(){
+                        unwrap($scope.richEditorApi.capture.elem);
+                    });
                 },
                 get: function(){
                     return $scope.richEditorApi.capture.elem.innerText;
+                },
+                replace: function(newnode){
+                    $timeout(function(){
+                        var parent = $scope.richEditorApi.capture.elem.parentNode;
+                        parent.replaceChild(newnode, $scope.richEditorApi.capture.elem);
+                        
+                        // Set the cursor at the end of the parent element
+                        var range = document.createRange();
+                        range.selectNodeContents(parent);
+                        range.collapse(false);
+                        var selection = window.getSelection();
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                    });
                 }
             }
             // To figure out if we're currently capturing input we can check
@@ -304,31 +330,20 @@ angular.module("richeditor",[])
             /* Events */
             
 
-            // Listen for text selection from keyboard
-            // Might not need these raw events given the selectionchange event
-            // unless we want to support older browsers
-         //    $document.on("mouseup", function(e){
-         //        var selection = $window.getSelection();
-         //        if(selection.type=="Range" && isElementInsideEditor(selection.focusNode)){
-         //            $scope.$emit("richeditor:selection",e);
-         //        }
-         //    });
-         //    // Listen text selection from mouse
-        	// $element.on("keyup", function(e){
-        	// 	var selection = $window.getSelection();
-         //        if(selection.type=="Range"){
-         //            $scope.$emit("richeditor:selection",e);
-         //        }
-        	// });
-            var checkForElementSelection = debounce(function(e){
-                var selection = $window.getSelection();
-                if(selection.type=="Range" && isElementInsideEditor(selection.focusNode)){
-                    $scope.$emit("richeditor:selection",e);
-                }
-            }, 300);
+            // This is to support 'selectionchange' on firefox
+            $document.on("mouseup keyup", function(e){
+                checkForElementSelection(e);
+            });
             $document.on("selectionchange", function(e){
                 checkForElementSelection(e);
             });
+            var checkForElementSelection = debounce(function(e){
+                var selection = $window.getSelection();
+                var isRangeSelection = selection.anchorOffset!=selection.focusOffset;
+                if(isRangeSelection && isElementInsideEditor(selection.focusNode)){
+                    $scope.$emit("richeditor:selection",e);
+                }
+            }, 300);
 
             $element.on("keypress", function(e){
                 $scope.$emit("richeditor:keypress",e);
@@ -339,10 +354,9 @@ angular.module("richeditor",[])
                 $scope.$emit("richeditor:keydown",e);
 
                 // If we were capturing input then cancel it
-                if($scope.richEditorApi.capture.isCapturing && e.keyCode == 13 /* enter */){
-                    console.log($scope.richEditorApi.capture.get());
-                    $scope.richEditorApi.capture.cancel();
-                }
+                // if($scope.richEditorApi.capture.isCapturing && e.keyCode == 13 /* enter */){
+                //     $scope.richEditorApi.capture.cancel();
+                // }
             });
 
             /* Helper Functions */
