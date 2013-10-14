@@ -306,12 +306,12 @@ angular.module("richeditor",[])
                 elem: document.createElement("span"),
                 isCapturing: false, // This is set through a watch on elem.parentElement
                 start: function(initString){
+                    preventEmptyNode();
                     $timeout(function(){
-                        preventEmptyNode();
                         var newnode = angular.element($scope.richEditorApi.capture.elem);
                         newnode.text(initString);
                         newnode.addClass('capture-range');
-                        document.getSelection().getRangeAt(0).insertNode(newnode[0]);
+                        var r1 = document.getSelection().getRangeAt(0).insertNode(newnode[0]);
                         var range = document.createRange();
                         range.selectNodeContents(newnode[0]);
                         range.collapse(false);
@@ -333,14 +333,12 @@ angular.module("richeditor",[])
                     // Use timeout to trigger the $watch
                     $timeout(function(){
                         var elem = angular.element($scope.richEditorApi.capture.elem);
-                        var parent = elem.parent();
                         elem.replaceWith(newnode);
-                        var test = angular.element("yaaay");
-                        test.insertAfter(newnode);
-                        
-                        // // Set the cursor at the end of the parent element
+
+                        // Set the cursor at the end of the parent element
                         var range = document.createRange();
-                        range.selectNodeContents(parent[0]);
+                        range.setStartAfter(newnode[0]);
+                        range.setEndAfter(newnode[0]);
                         range.collapse(false);
                         var selection = window.getSelection();
                         selection.removeAllRanges();
