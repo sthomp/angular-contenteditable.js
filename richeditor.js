@@ -105,30 +105,54 @@ angular.module("richeditor",[])
                 
             };
 
-            /* Text Editor */
+            // Make sure <br> tags are off when pressing return
+            document.execCommand('insertBrOnReturn',false, false);
 
-            $element.on("keypress", function(e){
+            function preventEmptyNode(){
+                var blockType = document.queryCommandValue("formatBlock");
+                var check = blockType!="p" && blockType!="h1" && blockType!="h2" && blockType!="h3";
+                if(check){
+                    document.execCommand('formatBlock', false, '<p>');
+                    $element.focus();   // for some reason Firefox loses focus after formatBlock
+                }
+            }
+
+            /* Text Editor */
+            $element.on("focus", function(e){
                 if($element.text().length==0){
-                    document.execCommand('formatBlock', false, '<P>');
+                    $element.addClass("empty");
+                }
+                else{
+                    $element.removeClass("empty");
                 }
             });
 
-            // When creating new lines use <p> instead of <div>
-            $element.on("keyup", function(e){
-                if (e.which === 13 /* enter */) {
-                    var blockType = document.queryCommandValue("formatBlock"); 
-                    if(blockType == 'div'){
-                        document.execCommand('formatBlock', false, '<P>');
-                    }
-                    
+            // Called every time the content changes
+            $element.on("input", function(e){
+                preventEmptyNode();
+                if($element.text().length==0){
+                    $element.addClass("empty");
                 }
+                else{
+                    $element.removeClass("empty");
+                }
+
+                $scope.$emit("richeditor:input",e);
+            });
+
+            $element.on("keypress", function(e){
+                $scope.$emit("richeditor:keypress",e);
+            });
+
+            $element.on("keyup", function(e){
                 $scope.$emit("richeditor:keyup",e);
             });
 
-            $element.on("textInput", function(e){
-                console.log("Start textInput");
-                $scope.$emit("richeditor:textInput",e);
-            });
+            // doesnt work in firefox
+            // $element.on("textInput", function(e){
+            //     console.log("Start textInput");
+            //     $scope.$emit("richeditor:textInput",e);
+            // });
 
             $element.on("paste", function(e){
                 e.preventDefault();
@@ -283,7 +307,7 @@ angular.module("richeditor",[])
                 isCapturing: false, // This is set through a watch on elem.parentElement
                 start: function(){
                     var newnode = $scope.richEditorApi.capture.elem;
-                    newnode.innerText='a';
+                    newnode.innerText = 'a';
                     newnode.className='capture-range';
                     document.getSelection().getRangeAt(0).insertNode(newnode);
                     var range = document.createRange();
@@ -298,16 +322,20 @@ angular.module("richeditor",[])
                     });
                 },
                 get: function(){
-                    return $scope.richEditorApi.capture.elem.innerText;
+                    return angular.element($scope.richEditorApi.capture.elem).text();
                 },
                 replace: function(newnode){
+                    // Use timeout to trigger the $watch
                     $timeout(function(){
-                        var parent = $scope.richEditorApi.capture.elem.parentNode;
-                        parent.replaceChild(newnode, $scope.richEditorApi.capture.elem);
+                        var elem = angular.element($scope.richEditorApi.capture.elem);
+                        var parent = elem.parent();
+                        elem.replaceWith(newnode);
+                        var test = angular.element("yaaay");
+                        test.insertAfter(newnode);
                         
-                        // Set the cursor at the end of the parent element
+                        // // Set the cursor at the end of the parent element
                         var range = document.createRange();
-                        range.selectNodeContents(parent);
+                        range.selectNodeContents(parent[0]);
                         range.collapse(false);
                         var selection = window.getSelection();
                         selection.removeAllRanges();
@@ -344,10 +372,6 @@ angular.module("richeditor",[])
                     $scope.$emit("richeditor:selection",e);
                 }
             }, 300);
-
-            $element.on("keypress", function(e){
-                $scope.$emit("richeditor:keypress",e);
-            });
 
             $element.on("keydown", function(e){
                 // Emit the keydown event

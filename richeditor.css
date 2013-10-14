@@ -2,3 +2,8 @@
     content:attr(data-placeholder);
     color:#888;
 }
+
+[contentEditable=true].empty:not(:focus):before{
+    content:attr(data-placeholder);
+    color:#888;
+}
