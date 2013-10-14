@@ -244,6 +244,7 @@ angular.module("richeditor",[])
                     return false;
                 }
                 else if(fn(elem)){
+                    console.log("Got it: " + elem);
                     return elem;
                 }
                 else if(elem.nodeName.toLowerCase()=="body"){
@@ -302,6 +303,12 @@ angular.module("richeditor",[])
                 who.remove();
             }
 
+            function isInsideAtomicElement(theElement){
+                return traverseUpDom(theElement, function(elem){
+                    return angular.element(elem).attr("atomic-element");
+                });
+            }
+
             $scope.richEditorApi.capture = {
                 elem: document.createElement("span"),
                 isCapturing: false, // This is set through a watch on elem.parentElement
@@ -313,9 +320,8 @@ angular.module("richeditor",[])
                         newnode.addClass('capture-range');
                         // Get current cursor position
                         var s1 = document.getSelection();
-                        var atomicElement = traverseUpDom(s1.anchorNode, function(elem){
-                            return angular.element(elem).data("atomic-element");
-                        });
+                        var atomicElement = isInsideAtomicElement(s1.anchorNode);
+                        
                         // Make sure we're not inserting inside an atomic element
                         if(atomicElement){
                             // If we are inside an atomic element then insert after the element
@@ -351,7 +357,7 @@ angular.module("richeditor",[])
 
                         // Set the cursor at the end of the parent element
                         if(isAtomic){ 
-                            newnode.data('atomic-element', true); 
+                            newnode.attr('atomic-element', true); 
                         }
                         var range = document.createRange();
                         range.setStartAfter(newnode[0]);
