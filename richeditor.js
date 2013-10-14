@@ -244,7 +244,7 @@ angular.module("richeditor",[])
                     return false;
                 }
                 else if(fn(elem)){
-                    return true;
+                    return elem;
                 }
                 else if(elem.nodeName.toLowerCase()=="body"){
                     return false;
@@ -311,7 +311,21 @@ angular.module("richeditor",[])
                         var newnode = angular.element($scope.richEditorApi.capture.elem);
                         newnode.text(initString);
                         newnode.addClass('capture-range');
-                        var r1 = document.getSelection().getRangeAt(0).insertNode(newnode[0]);
+                        // Get current cursor position
+                        var s1 = document.getSelection();
+                        var atomicElement = traverseUpDom(s1.anchorNode, function(elem){
+                            return angular.element(elem).data("atomic-element");
+                        });
+                        // Make sure we're not inserting inside an atomic element
+                        if(atomicElement){
+                            // If we are inside an atomic element then insert after the element
+                            angular.element(atomicElement).after(newnode);
+                        }
+                        else{
+                            // Otherwise just insert at the cursor location
+                            s1.getRangeAt(0).insertNode(newnode[0]);
+                        }
+                        // Set the cursor inside the node
                         var range = document.createRange();
                         range.selectNodeContents(newnode[0]);
                         range.collapse(false);
@@ -329,13 +343,16 @@ angular.module("richeditor",[])
                 get: function(){
                     return angular.element($scope.richEditorApi.capture.elem).text();
                 },
-                replace: function(newnode){
+                replace: function(newnode, isAtomic){
                     // Use timeout to trigger the $watch
                     $timeout(function(){
                         var elem = angular.element($scope.richEditorApi.capture.elem);
                         elem.replaceWith(newnode);
 
                         // Set the cursor at the end of the parent element
+                        if(isAtomic){ 
+                            newnode.data('atomic-element', true); 
+                        }
                         var range = document.createRange();
                         range.setStartAfter(newnode[0]);
                         range.setEndAfter(newnode[0]);
