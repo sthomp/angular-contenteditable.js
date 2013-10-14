@@ -305,16 +305,21 @@ angular.module("richeditor",[])
             $scope.richEditorApi.capture = {
                 elem: document.createElement("span"),
                 isCapturing: false, // This is set through a watch on elem.parentElement
-                start: function(){
-                    var newnode = $scope.richEditorApi.capture.elem;
-                    newnode.innerText = 'a';
-                    newnode.className='capture-range';
-                    document.getSelection().getRangeAt(0).insertNode(newnode);
-                    var range = document.createRange();
-                    range.selectNodeContents(newnode);
-                    var selection = $window.getSelection();
-                    selection.removeAllRanges();
-                    selection.addRange(range);
+                start: function(initString){
+                    $timeout(function(){
+                        preventEmptyNode();
+                        var newnode = angular.element($scope.richEditorApi.capture.elem);
+                        newnode.text(initString);
+                        newnode.addClass('capture-range');
+                        document.getSelection().getRangeAt(0).insertNode(newnode[0]);
+                        var range = document.createRange();
+                        range.selectNodeContents(newnode[0]);
+                        range.collapse(false);
+                        var selection = $window.getSelection();
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                    })
+                    
                 },
                 cancel: function(){
                     $timeout(function(){
