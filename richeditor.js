@@ -267,7 +267,12 @@ angular.module("richeditor",[])
                 var isLink = traverseUpDom(currentElement, function(elem){
                     return elem.tagName.toLowerCase() == "a";
                 });
-                return isLink!=null;
+                if(isLink){
+                    return true;
+                }
+                else{
+                    return false;
+                }
             }
 
             $scope.richEditorApi.isLinkWithClass = function(clazz){
