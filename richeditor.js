@@ -244,7 +244,6 @@ angular.module("richeditor",[])
                     return false;
                 }
                 else if(fn(elem)){
-                    console.log("Got it: " + elem);
                     return elem;
                 }
                 else if(elem.nodeName.toLowerCase()=="body"){
@@ -294,19 +293,23 @@ angular.module("richeditor",[])
 
             /* Capture Text Input */
 
-            // http://stackoverflow.com/questions/1614658/how-do-you-undo-surroundcontents-in-javascript
-            function unwrap(who){
-                var pa= who.parentNode;
-                while(who.firstChild){
-                    pa.insertBefore(who.firstChild, who);
-                }
-                who.remove();
-            }
-
             function isInsideAtomicElement(theElement){
                 return traverseUpDom(theElement, function(elem){
                     return angular.element(elem).attr("atomic-element");
                 });
+            }
+
+            $scope.richEditorApi.rangeHelper = {
+                setCursorAfterNode: function(node){
+                    console.log(angular.element(node).text());
+                    var range = document.createRange();
+                    range.setStartAfter(node);
+                    range.setEndAfter(node);
+                    range.collapse(false);
+                    var selection = window.getSelection();
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                }
             }
 
             $scope.richEditorApi.capture = {
@@ -343,7 +346,9 @@ angular.module("richeditor",[])
                 },
                 cancel: function(){
                     $timeout(function(){
-                        unwrap($scope.richEditorApi.capture.elem);
+                        var contents = angular.element($scope.richEditorApi.capture.elem).contents().last();
+                        contents.unwrap();
+                        $scope.richEditorApi.rangeHelper.setCursorAfterNode(contents[0]);
                     });
                 },
                 get: function(){
@@ -359,13 +364,8 @@ angular.module("richeditor",[])
                         if(isAtomic){ 
                             newnode.attr('atomic-element', true); 
                         }
-                        var range = document.createRange();
-                        range.setStartAfter(newnode[0]);
-                        range.setEndAfter(newnode[0]);
-                        range.collapse(false);
-                        var selection = window.getSelection();
-                        selection.removeAllRanges();
-                        selection.addRange(range);
+                        $scope.richEditorApi.rangeHelper.setCursorAfterNode(newnode[0]);
+                        $element.focus();
                     });
                 }
             }
