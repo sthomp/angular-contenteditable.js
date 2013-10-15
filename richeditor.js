@@ -34,8 +34,7 @@ angular.module("richeditor",[])
         replace: true,
         controller: ['$scope', '$document', function($scope,$document){
             $document.on('selectionchange', function(e){
-                // e.preventDefault();
-                // console.log('change')
+                
             });
         }],
         link: function(scope,element,attrs){
@@ -150,7 +149,6 @@ angular.module("richeditor",[])
 
             // doesnt work in firefox
             // $element.on("textInput", function(e){
-            //     console.log("Start textInput");
             //     $scope.$emit("richeditor:textInput",e);
             // });
 
@@ -269,7 +267,7 @@ angular.module("richeditor",[])
                 var isLink = traverseUpDom(currentElement, function(elem){
                     return elem.tagName.toLowerCase() == "a";
                 });
-                return isLink;
+                return isLink!=null;
             }
 
             $scope.richEditorApi.isLinkWithClass = function(clazz){
@@ -301,7 +299,6 @@ angular.module("richeditor",[])
 
             $scope.richEditorApi.rangeHelper = {
                 setCursorAfterNode: function(node){
-                    console.log(angular.element(node).text());
                     var range = document.createRange();
                     range.setStartAfter(node);
                     range.setEndAfter(node);
