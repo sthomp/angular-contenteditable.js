@@ -28,6 +28,38 @@ angular.module("richeditor",[])
         };
     };
 }])
+.factory('throttle', ['$timeout', function ($timeout) {
+    return function(func, wait, options) {
+        var context, args, result;
+        var timeout = null;
+        var previous = 0;
+        var getTime = (Date.now || function() {
+            return new Date().getTime();
+        });
+        options || (options = {});
+        var later = function() {
+          previous = options.leading === false ? 0 : getTime();
+          timeout = null;
+          result = func.apply(context, args);
+        };
+        return function() {
+          var now = getTime();
+          if (!previous && options.leading === false) previous = now;
+          var remaining = wait - (now - previous);
+          context = this;
+          args = arguments;
+          if (remaining <= 0) {
+            clearTimeout(timeout);
+            timeout = null;
+            previous = now;
+            result = func.apply(context, args);
+          } else if (!timeout && options.trailing !== false) {
+            timeout = setTimeout(later, remaining);
+          }
+          return result;
+        };
+    };
+}])
 .directive("stNotEditable", [function(){
     return {
         restrict: "A",
@@ -94,7 +126,7 @@ angular.module("richeditor",[])
         }
     }
 }])
-.directive("richEditor", ['$compile', 'debounce',function($compile, debounce){
+.directive("richEditor", ['$compile', 'debounce', 'throttle',function($compile, debounce, throttle){
 	return {
         restrict: "E",
         template: "<div class='rich-editor' contenteditable='true'></div>",
@@ -103,6 +135,36 @@ angular.module("richeditor",[])
             $scope.richEditorApi = {
                 
             };
+
+            $scope.richEditorApi.currentSelection = {
+                anchorOffset: null,
+                focusOffset: null,
+                anchorNode: null,
+                focusNode: null
+            }
+
+            var updateSelection = throttle(function(e){
+                $timeout(function(){
+                    var selection = $window.getSelection();
+                    $scope.richEditorApi.currentSelection.anchorOffset = selection.anchorOffset;
+                    $scope.richEditorApi.currentSelection.focusOffset = selection.focusOffset;
+                    $scope.richEditorApi.currentSelection.anchorNode = selection.anchorNode;
+                    $scope.richEditorApi.currentSelection.focusNode = selection.focusNode;
+                })
+            }, 200);
+
+            $scope.$watchCollection('[richEditorApi.currentSelection.anchorOffset, richEditorApi.currentSelection.focusOffset, richEditorApi.currentSelection.anchorNode, richEditorApi.currentSelection.focusNode]', function() {
+                var selection = $window.getSelection();
+                var isRangeSelection = selection.anchorOffset!=selection.focusOffset;
+                if(isRangeSelection && isElementInsideEditor(selection.focusNode)){
+                    $scope.$emit("richeditor:selection");
+                }
+            });
+
+            // Listen to mouse and keyboard and update the selection so we can capture selection change events
+            $document.on("keydown keyup keypress mousemove mousedown mouseup mouseclick", function(e){
+                updateSelection();
+            });
 
             // Make sure <br> tags are off when pressing return
             document.execCommand('insertBrOnReturn',false, false);
@@ -387,19 +449,19 @@ angular.module("richeditor",[])
             
 
             // This is to support 'selectionchange' on firefox
-            $document.on("mouseup keyup", function(e){
-                checkForElementSelection(e);
-            });
-            $document.on("selectionchange", function(e){
-                checkForElementSelection(e);
-            });
-            var checkForElementSelection = debounce(function(e){
-                var selection = $window.getSelection();
-                var isRangeSelection = selection.anchorOffset!=selection.focusOffset;
-                if(isRangeSelection && isElementInsideEditor(selection.focusNode)){
-                    $scope.$emit("richeditor:selection",e);
-                }
-            }, 300);
+            // $document.on("mouseup keyup", function(e){
+            //     checkForElementSelection(e);
+            // });
+            // $document.on("selectionchange", function(e){
+            //     checkForElementSelection(e);
+            // });
+            // var checkForElementSelection = debounce(function(e){
+            //     var selection = $window.getSelection();
+            //     var isRangeSelection = selection.anchorOffset!=selection.focusOffset;
+            //     if(isRangeSelection && isElementInsideEditor(selection.focusNode)){
+            //         $scope.$emit("richeditor:selection",e);
+            //     }
+            // }, 300);
 
             $element.on("keydown", function(e){
                 // Emit the keydown event
