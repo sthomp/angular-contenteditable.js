@@ -390,7 +390,8 @@ angular.module("richeditor",[])
                         newnode.addClass('capture-range');
                         // Get current cursor position
                         var s1 = document.getSelection();
-                        var atomicElement = isInsideAtomicElement(s1.anchorNode);
+                        // Check if the cursor position is inside an atomic element
+                        var atomicElement = isInsideAtomicElement(s1.getRangeAt(0).startContainer);
                         
                         // Make sure we're not inserting inside an atomic element
                         if(atomicElement){
