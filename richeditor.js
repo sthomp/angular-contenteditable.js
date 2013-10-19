@@ -161,6 +161,9 @@ angular.module("richeditor",[])
                 }
             });
 
+
+            $element.append('<p style="min-height:1em;"></p>');
+
             // Listen to mouse and keyboard and update the selection so we can capture selection change events
             $document.on("keydown keyup keypress mousemove mousedown mouseup mouseclick", function(e){
                 updateSelection();

@@ -1,4 +1,4 @@
-[contentEditable=true]:empty:not(:focus):before{
+/*[contentEditable=true]:empty:not(:focus):before{
     content:attr(data-placeholder);
     color:#888;
 }
@@ -6,4 +6,17 @@
 [contentEditable=true].empty:not(:focus):before{
     content:attr(data-placeholder);
     color:#888;
+}*/
+
+/*.rich-editor :first-child:empty:not(:focus):before{
+	content: 'yay';
+	background-color:yellow;
+	color:#888;
+}*/
+
+
+.rich-editor:not(:focus) :first-child:empty:before,
+.rich-editor:not(:focus).empty :first-child:first-child:before{
+	content: 'Click here to start typing';
+	color:#888;
 }
