@@ -1,6 +1,11 @@
 
-.rich-editor:not(:focus).empty :first-child:first-child:before{
+.st-rich-editor:not(:focus).empty p:before{
 	content: 'Click here to start typing';
+	color:#888;
+}
+
+.st-single-line-field:not(:focus).empty:before{
+	content: attr(data-placeholder);
 	color:#888;
 }
 

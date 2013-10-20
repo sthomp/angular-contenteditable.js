@@ -74,7 +74,7 @@ angular.module("richeditor",[])
         }
     }
 }])
-.directive("ngContentditable", [function(){
+.directive("stSingleLineField", [function(){
 	return {
         restrict: "A",
         require: '?ngModel', // get a hold of NgModelController
@@ -83,6 +83,27 @@ angular.module("richeditor",[])
         }],
         link: function(scope, element, attrs, ngModel){
         	element.attr("contenteditable","true");
+            element.addClass("st-single-line-field");
+
+            if(element.text().length==0){
+                element.addClass("empty");
+            }
+            element.on("focus", function(e){
+                if(element.text().length==0){
+                    element.addClass("empty");
+                }
+                else{
+                    element.removeClass("empty");
+                }
+            });
+            element.on("input", function(e){
+                if(element.text().length==0){
+                    element.addClass("empty");
+                }
+                else{
+                    element.removeClass("empty");
+                }
+            });
 
         	/* Check if we need to prevent input. ie: maxlength or singleline input */
         	element.on('keydown', function(e){
@@ -126,10 +147,10 @@ angular.module("richeditor",[])
         }
     }
 }])
-.directive("richEditor", ['$compile', 'debounce', 'throttle',function($compile, debounce, throttle){
+.directive("stRichEditor", ['$compile', 'debounce', 'throttle',function($compile, debounce, throttle){
 	return {
         restrict: "E",
-        template: "<div class='rich-editor' contenteditable='true'></div>",
+        template: "<div class='st-rich-editor' contenteditable='true'></div>",
         replace: true,
         controller: ['$scope', '$element', '$timeout', '$window', '$document',function($scope, $element, $timeout, $window, $document){
 
