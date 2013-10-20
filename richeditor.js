@@ -132,17 +132,43 @@ angular.module("richeditor",[])
         template: "<div class='rich-editor' contenteditable='true'></div>",
         replace: true,
         controller: ['$scope', '$element', '$timeout', '$window', '$document',function($scope, $element, $timeout, $window, $document){
+
             $scope.richEditorApi = {
-                
+                currentSelection: {
+                    anchorOffset: null,
+                    focusOffset: null,
+                    anchorNode: null,
+                    focusNode: null,
+                    e: null
+                },
+                rangeHelper: {
+                    setCursorAfterNode: function(node){
+                        var range = document.createRange();
+                        range.setStartAfter(node);
+                        range.setEndAfter(node);
+                        range.collapse(false);
+                        var selection = window.getSelection();
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                    },
+                    isRangeSelection: function(){
+                        // Check if a range is selected or if its just a single cursor
+                        if($scope.richEditorApi.currentSelection.anchorNode != $scope.richEditorApi.currentSelection.focusNode){
+                            return true;
+                        }
+                        else{
+                            if($scope.richEditorApi.currentSelection.anchorOffset != $scope.richEditorApi.currentSelection.focusOffset){
+                                return true;
+                            }
+                            else{
+                                return false;
+                            }
+                        }
+                    }
+                }
             };
 
-            $scope.richEditorApi.currentSelection = {
-                anchorOffset: null,
-                focusOffset: null,
-                anchorNode: null,
-                focusNode: null
-            }
-
+            // Updating the current selection requires throttling to improve performance
             var updateSelection = throttle(function(e){
                 $timeout(function(){
                     var selection = $window.getSelection();
@@ -150,24 +176,29 @@ angular.module("richeditor",[])
                     $scope.richEditorApi.currentSelection.focusOffset = selection.focusOffset;
                     $scope.richEditorApi.currentSelection.anchorNode = selection.anchorNode;
                     $scope.richEditorApi.currentSelection.focusNode = selection.focusNode;
+                    $scope.richEditorApi.currentSelection.e = e;
                 })
             }, 200);
-
+            // React to selectoin changes
             $scope.$watchCollection('[richEditorApi.currentSelection.anchorOffset, richEditorApi.currentSelection.focusOffset, richEditorApi.currentSelection.anchorNode, richEditorApi.currentSelection.focusNode]', function() {
                 var selection = $window.getSelection();
                 var isRangeSelection = selection.anchorOffset!=selection.focusOffset;
+                
                 if(isRangeSelection && isElementInsideEditor(selection.focusNode)){
                     $scope.$emit("richeditor:selection");
                 }
             });
-
-
-            $element.append('<p style="min-height:1em;"></p>');
-
             // Listen to mouse and keyboard and update the selection so we can capture selection change events
             $document.on("keydown keyup keypress mousemove mousedown mouseup mouseclick", function(e){
-                updateSelection();
+                updateSelection(e);
             });
+
+
+            // Initialize the editor with an empty <p> tag
+            $element.append('<p style="min-height:1em;"></p>');
+            if($element.text().length==0){
+                $element.addClass("empty");
+            }
 
             // Make sure <br> tags are off when pressing return
             document.execCommand('insertBrOnReturn',false, false);
@@ -367,18 +398,6 @@ angular.module("richeditor",[])
                 });
             }
 
-            $scope.richEditorApi.rangeHelper = {
-                setCursorAfterNode: function(node){
-                    var range = document.createRange();
-                    range.setStartAfter(node);
-                    range.setEndAfter(node);
-                    range.collapse(false);
-                    var selection = window.getSelection();
-                    selection.removeAllRanges();
-                    selection.addRange(range);
-                }
-            }
-
             $scope.richEditorApi.capture = {
                 elem: document.createElement("span"),
                 isCapturing: false, // This is set through a watch on elem.parentElement
@@ -422,19 +441,27 @@ angular.module("richeditor",[])
                 get: function(){
                     return angular.element($scope.richEditorApi.capture.elem).text();
                 },
-                replace: function(newnode, isAtomic){
+                replace: function(newnode){
                     // Use timeout to trigger the $watch
                     $timeout(function(){
                         var elem = angular.element($scope.richEditorApi.capture.elem);
                         elem.replaceWith(newnode);
-
-                        // Set the cursor at the end of the parent element
-                        if(isAtomic){ 
-                            newnode.attr('atomic-element', true); 
-                        }
                         $scope.richEditorApi.rangeHelper.setCursorAfterNode(newnode[0]);
                         $element.focus();
                     });
+                },
+                /* Note: this style of replace won't work with <span> because the browser will let the user edit the content of the <span> */
+                replaceAtomicLink: function(url,text){
+                    var newnode = angular.element("<a href='" + url + "' class='atomic-element' data-atomic-content='" + text + "'>&#8203;</a>");
+                    newnode.attr("atomic-element",true);
+                    // Use timeout to trigger the $watch
+                    $timeout(function(){
+                        var elem = angular.element($scope.richEditorApi.capture.elem);
+                        elem.replaceWith(newnode);
+                        $scope.richEditorApi.rangeHelper.setCursorAfterNode(newnode[0]);
+                        $element.focus();
+                    });   
+                    return newnode;
                 }
             }
             // To figure out if we're currently capturing input we can check

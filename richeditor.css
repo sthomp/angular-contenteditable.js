@@ -15,8 +15,11 @@
 }*/
 
 
-.rich-editor:not(:focus) :first-child:empty:before,
 .rich-editor:not(:focus).empty :first-child:first-child:before{
 	content: 'Click here to start typing';
 	color:#888;
+}
+
+.atomic-element:before{
+  content:attr(data-atomic-content);
 }
