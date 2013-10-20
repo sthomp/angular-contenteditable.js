@@ -184,7 +184,7 @@ angular.module("richeditor",[])
                 var selection = $window.getSelection();
                 var isRangeSelection = selection.anchorOffset!=selection.focusOffset;
 
-                ensureOutsideAtomicElement();
+                // ensureOutsideAtomicElement();
                 clearCaptureRangeIfCursorIsOutside();
                 
                 if(isRangeSelection && isElementInsideEditor(selection.focusNode)){
@@ -395,19 +395,19 @@ angular.module("richeditor",[])
 
             /* Capture Text Input */
 
-            function ensureOutsideAtomicElement(){
-                var selection = $window.getSelection();
-                var atomicElement = isInsideAtomicElement(selection.anchorNode);
-                if(atomicElement){
-                    $scope.richEditorApi.rangeHelper.setCursorAfterNode(atomicElement);
-                }
-                else{
-                    var atomicElement = isInsideAtomicElement(selection.focusNode);
-                    if(atomicElement){
-                        $scope.richEditorApi.rangeHelper.setCursorAfterNode(atomicElement);
-                    }
-                }
-            }
+            // function ensureOutsideAtomicElement(){
+            //     var selection = $window.getSelection();
+            //     var atomicElement = isInsideAtomicElement(selection.anchorNode);
+            //     if(atomicElement){
+            //         $scope.richEditorApi.rangeHelper.setCursorAfterNode(atomicElement);
+            //     }
+            //     else{
+            //         var atomicElement = isInsideAtomicElement(selection.focusNode);
+            //         if(atomicElement){
+            //             $scope.richEditorApi.rangeHelper.setCursorAfterNode(atomicElement);
+            //         }
+            //     }
+            // }
 
             function clearCaptureRangeIfCursorIsOutside(){
                 if($scope.richEditorApi.capture.isCapturing){
@@ -431,11 +431,11 @@ angular.module("richeditor",[])
                 });
             }
 
-            function isInsideAtomicElement(theElement){
-                return traverseUpDom(theElement, function(elem){
-                    return angular.element(elem).attr("atomic-element");
-                });
-            }
+            // function isInsideAtomicElement(theElement){
+            //     return traverseUpDom(theElement, function(elem){
+            //         return angular.element(elem).attr("atomic-element");
+            //     });
+            // }
 
             $scope.richEditorApi.capture = {
                 elem: document.createElement("span"),
@@ -449,17 +449,17 @@ angular.module("richeditor",[])
                         // Get current cursor position
                         var s1 = document.getSelection();
                         // Check if the cursor position is inside an atomic element
-                        var atomicElement = isInsideAtomicElement(s1.getRangeAt(0).startContainer);
+                        // var atomicElement = isInsideAtomicElement(s1.getRangeAt(0).startContainer);
                         
                         // Make sure we're not inserting inside an atomic element
-                        if(atomicElement){
-                            // If we are inside an atomic element then insert after the element
-                            angular.element(atomicElement).after(newnode);
-                        }
-                        else{
+                        // if(atomicElement){
+                        //     // If we are inside an atomic element then insert after the element
+                        //     angular.element(atomicElement).after(newnode);
+                        // }
+                        // else{
                             // Otherwise just insert at the cursor location
                             s1.getRangeAt(0).insertNode(newnode[0]);
-                        }
+                        // }
                         // Set the cursor inside the node
                         var range = document.createRange();
                         range.selectNodeContents(newnode[0]);
@@ -492,8 +492,8 @@ angular.module("richeditor",[])
                     });
                 },
                 /* Note: this style of replace won't work with <span> because the browser will let the user edit the content of the <span> */
-                replaceAtomicLink: function(url,text){
-                    var newnode = angular.element("<a href='" + url + "' class='atomic-element' data-atomic-content='" + text + "'>&#8203;</a>");
+                replaceAtomicLink: function(text){
+                    var newnode = angular.element("<input class='atomic-element' type=button value='" + text + "''>");
                     newnode.attr("atomic-element",true);
                     // Use timeout to trigger the $watch
                     $timeout(function(){
