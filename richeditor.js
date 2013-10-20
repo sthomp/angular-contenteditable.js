@@ -185,6 +185,7 @@ angular.module("richeditor",[])
                 var isRangeSelection = selection.anchorOffset!=selection.focusOffset;
 
                 ensureOutsideAtomicElement();
+                clearCaptureRangeIfCursorIsOutside();
                 
                 if(isRangeSelection && isElementInsideEditor(selection.focusNode)){
                     $scope.$emit("richeditor:selection");
@@ -396,7 +397,6 @@ angular.module("richeditor",[])
 
             function ensureOutsideAtomicElement(){
                 var selection = $window.getSelection();
-                var isRangeSelection = selection.anchorOffset!=selection.focusOffset;
                 var atomicElement = isInsideAtomicElement(selection.anchorNode);
                 if(atomicElement){
                     $scope.richEditorApi.rangeHelper.setCursorAfterNode(atomicElement);
@@ -407,6 +407,28 @@ angular.module("richeditor",[])
                         $scope.richEditorApi.rangeHelper.setCursorAfterNode(atomicElement);
                     }
                 }
+            }
+
+            function clearCaptureRangeIfCursorIsOutside(){
+                if($scope.richEditorApi.capture.isCapturing){
+                    var selection = $window.getSelection();
+                    var atomicElement = isInsideCaptureRange(selection.anchorNode);
+                    if(!atomicElement){
+                        $scope.richEditorApi.capture.cancel();
+                    }
+                    else{
+                        var atomicElement = isInsideCaptureRange(selection.focusNode);
+                        if(!atomicElement){
+                            $scope.richEditorApi.capture.elem.cancel();
+                        }
+                    }
+                }
+            }
+
+            function isInsideCaptureRange(theElement){
+                return traverseUpDom(theElement, function(elem){
+                    return angular.element(elem).hasClass("capture-range");
+                });
             }
 
             function isInsideAtomicElement(theElement){
@@ -450,9 +472,11 @@ angular.module("richeditor",[])
                 },
                 cancel: function(){
                     $timeout(function(){
-                        var contents = angular.element($scope.richEditorApi.capture.elem).contents().last();
-                        contents.unwrap();
-                        $scope.richEditorApi.rangeHelper.setCursorAfterNode(contents[0]);
+                        if($scope.richEditorApi.capture.isCapturing){
+                            var contents = angular.element($scope.richEditorApi.capture.elem).contents().last();
+                            contents.unwrap();
+                            $scope.richEditorApi.rangeHelper.setCursorAfterNode(contents[0]);
+                        }
                     });
                 },
                 get: function(){
@@ -495,30 +519,9 @@ angular.module("richeditor",[])
 
             /* Events */
             
-
-            // This is to support 'selectionchange' on firefox
-            // $document.on("mouseup keyup", function(e){
-            //     checkForElementSelection(e);
-            // });
-            // $document.on("selectionchange", function(e){
-            //     checkForElementSelection(e);
-            // });
-            // var checkForElementSelection = debounce(function(e){
-            //     var selection = $window.getSelection();
-            //     var isRangeSelection = selection.anchorOffset!=selection.focusOffset;
-            //     if(isRangeSelection && isElementInsideEditor(selection.focusNode)){
-            //         $scope.$emit("richeditor:selection",e);
-            //     }
-            // }, 300);
-
             $element.on("keydown", function(e){
                 // Emit the keydown event
                 $scope.$emit("richeditor:keydown",e);
-
-                // If we were capturing input then cancel it
-                // if($scope.richEditorApi.capture.isCapturing && e.keyCode == 13 /* enter */){
-                //     $scope.richEditorApi.capture.cancel();
-                // }
             });
 
             /* Helper Functions */
