@@ -183,6 +183,8 @@ angular.module("richeditor",[])
             $scope.$watchCollection('[richEditorApi.currentSelection.anchorOffset, richEditorApi.currentSelection.focusOffset, richEditorApi.currentSelection.anchorNode, richEditorApi.currentSelection.focusNode]', function() {
                 var selection = $window.getSelection();
                 var isRangeSelection = selection.anchorOffset!=selection.focusOffset;
+
+                ensureOutsideAtomicElement();
                 
                 if(isRangeSelection && isElementInsideEditor(selection.focusNode)){
                     $scope.$emit("richeditor:selection");
@@ -391,6 +393,21 @@ angular.module("richeditor",[])
             }
 
             /* Capture Text Input */
+
+            function ensureOutsideAtomicElement(){
+                var selection = $window.getSelection();
+                var isRangeSelection = selection.anchorOffset!=selection.focusOffset;
+                var atomicElement = isInsideAtomicElement(selection.anchorNode);
+                if(atomicElement){
+                    $scope.richEditorApi.rangeHelper.setCursorAfterNode(atomicElement);
+                }
+                else{
+                    var atomicElement = isInsideAtomicElement(selection.focusNode);
+                    if(atomicElement){
+                        $scope.richEditorApi.rangeHelper.setCursorAfterNode(atomicElement);
+                    }
+                }
+            }
 
             function isInsideAtomicElement(theElement){
                 return traverseUpDom(theElement, function(elem){
