@@ -228,10 +228,10 @@ angular.module("richeditor",[])
             document.execCommand('insertBrOnReturn',false, false);
 
             function preventEmptyNode(){
-                var blockType = document.queryCommandValue("formatBlock");
+                var blockType = document.queryCommandValue("formatblock");
                 var check = blockType!="p" && blockType!="h1" && blockType!="h2" && blockType!="h3" && blockType!="blockquote" && blockType!="pre";
                 if(check){
-                    document.execCommand('formatBlock', false, '<p>');
+                    document.execCommand('formatblock', false, '<p>');
                     $element.focus();   // for some reason Firefox loses focus after formatBlock
                 }
             }
@@ -307,7 +307,7 @@ angular.module("richeditor",[])
                     $scope.richEditorApi.clearBlock();
                 }
                 else{
-                    document.execCommand("formatBlock", null, "<H2>");
+                    document.execCommand("formatblock", null, "<H2>");
                 }
             }
 
@@ -316,12 +316,12 @@ angular.module("richeditor",[])
                     $scope.richEditorApi.clearBlock();
                 }
                 else{
-                    document.execCommand("formatBlock", null, "<H3>");
+                    document.execCommand("formatblock", null, "<H3>");
                 }
             }
 
             $scope.richEditorApi.clearBlock = function(){
-                document.execCommand("formatBlock", null, "<P>");
+                document.execCommand("formatblock", null, "<P>");
             }
 
             $scope.richEditorApi.toggleUnorderedList = function(){
@@ -350,11 +350,11 @@ angular.module("richeditor",[])
             }
 
             $scope.richEditorApi.isH1 = function(){
-                return document.queryCommandValue('formatBlock') == "h2";
+                return document.queryCommandValue('formatblock') == "h2";
             }
 
             $scope.richEditorApi.isH2 = function(){
-                return document.queryCommandValue('formatBlock') == "h3";
+                return document.queryCommandValue('formatblock') == "h3";
             }
 
             $scope.richEditorApi.isOL = function(){
