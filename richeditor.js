@@ -302,12 +302,22 @@ angular.module("richeditor",[])
                 document.execCommand("unlink", null, null);
             }
 
-            $scope.richEditorApi.setBlockH1 = function(){
-                document.execCommand("formatBlock", null, "<H2>");
+            $scope.richEditorApi.toggleBlockH1 = function(){
+                if($scope.richEditorApi.isH1()){
+                    $scope.richEditorApi.clearBlock();
+                }
+                else{
+                    document.execCommand("formatBlock", null, "<H2>");
+                }
             }
 
-            $scope.richEditorApi.setBlockH2 = function(){
-                document.execCommand("formatBlock", null, "<H3>");
+            $scope.richEditorApi.toggleBlockH2 = function(){
+                if($scope.richEditorApi.isH2()){
+                    $scope.richEditorApi.clearBlock();
+                }
+                else{
+                    document.execCommand("formatBlock", null, "<H3>");
+                }
             }
 
             $scope.richEditorApi.clearBlock = function(){
