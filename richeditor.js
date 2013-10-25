@@ -229,7 +229,7 @@ angular.module("richeditor",[])
 
             function preventEmptyNode(){
                 var blockType = document.queryCommandValue("formatBlock");
-                var check = blockType!="p" && blockType!="h1" && blockType!="h2" && blockType!="h3" && blockType!="blockquote";
+                var check = blockType!="p" && blockType!="h1" && blockType!="h2" && blockType!="h3" && blockType!="blockquote" && blockType!="pre";
                 if(check){
                     document.execCommand('formatBlock', false, '<p>');
                     $element.focus();   // for some reason Firefox loses focus after formatBlock
@@ -302,15 +302,6 @@ angular.module("richeditor",[])
                 document.execCommand("unlink", null, null);
             }
 
-            $scope.richEditorApi.toggleBlockBlockquote = function(){
-                if($scope.richEditorApi.isBlockquote()){
-                    $scope.richEditorApi.clearBlock();
-                }
-                else{
-                    document.execCommand('formatBlock', false, 'blockquote');
-                }
-            }
-
             $scope.richEditorApi.toggleBlockH1 = function(){
                 if($scope.richEditorApi.isH1()){
                     $scope.richEditorApi.clearBlock();
@@ -356,10 +347,6 @@ angular.module("richeditor",[])
 
             $scope.richEditorApi.isUnderline = function(){
                 return document.queryCommandState('underline');
-            }
-
-            $scope.richEditorApi.isBlockquote = function(){
-                return document.queryCommandValue('formatBlock') == "blockquote";
             }
 
             $scope.richEditorApi.isH1 = function(){
