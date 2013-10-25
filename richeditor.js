@@ -228,7 +228,8 @@ angular.module("richeditor",[])
             document.execCommand('insertBrOnReturn',false, false);
 
             function preventEmptyNode(){
-                if(document.queryCommandValue("formatBlock")==''){
+                var blockType = document.queryCommandValue("formatBlock");
+                if(blockType=='' || blockType=='div'){
                     document.execCommand('formatblock', false, '<p>');
                     $element.focus();   // for some reason Firefox loses focus after formatBlock
                 }
@@ -248,6 +249,15 @@ angular.module("richeditor",[])
 
             $element.on("keypress", function(e){
                 preventEmptyNode();
+
+                if(e.keyCode == 13 /* return */){
+                    
+                    // Clear formatting when the user hits enter
+                    $timeout(function(){
+                        $scope.richEditorApi.clearFormatting();
+                    });
+                    
+                }
                 
                 $scope.$emit("richeditor:keypress",e);
             });
@@ -352,6 +362,20 @@ angular.module("richeditor",[])
 
             $scope.richEditorApi.isUL = function(){
                 return document.queryCommandState('insertUnorderedList');
+            }
+
+            $scope.richEditorApi.clearFormatting = function(){
+                if($scope.richEditorApi.isBold()){
+                    $scope.richEditorApi.toggleSelectionBold();
+                }
+
+                if($scope.richEditorApi.isItalic()){
+                    $scope.richEditorApi.toggleSelectionItalic();
+                }
+
+                if($scope.richEditorApi.isUnderline()){
+                    $scope.richEditorApi.toggleSelectionUnderline();
+                }
             }
 
             // Traverse up from the current node
