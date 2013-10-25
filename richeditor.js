@@ -228,27 +228,14 @@ angular.module("richeditor",[])
             document.execCommand('insertBrOnReturn',false, false);
 
             function preventEmptyNode(){
-                var blockType = document.queryCommandValue("formatblock");
-                var check = blockType!="p" && blockType!="h1" && blockType!="h2" && blockType!="h3" && blockType!="blockquote" && blockType!="pre";
-                if(check){
+                if(document.queryCommandValue("formatBlock")==''){
                     document.execCommand('formatblock', false, '<p>');
                     $element.focus();   // for some reason Firefox loses focus after formatBlock
                 }
             }
 
-            /* Text Editor */
-            $element.on("focus", function(e){
-                if($element.text().length==0){
-                    $element.addClass("empty");
-                }
-                else{
-                    $element.removeClass("empty");
-                }
-            });
-
             // Called every time the content changes
             $element.on("input", function(e){
-                preventEmptyNode();
                 if($element.text().length==0){
                     $element.addClass("empty");
                 }
@@ -260,6 +247,8 @@ angular.module("richeditor",[])
             });
 
             $element.on("keypress", function(e){
+                preventEmptyNode();
+                
                 $scope.$emit("richeditor:keypress",e);
             });
 
@@ -307,7 +296,7 @@ angular.module("richeditor",[])
                     $scope.richEditorApi.clearBlock();
                 }
                 else{
-                    document.execCommand("formatblock", null, "<H2>");
+                    document.execCommand("formatBlock", null, "<H2>");
                 }
             }
 
@@ -316,12 +305,12 @@ angular.module("richeditor",[])
                     $scope.richEditorApi.clearBlock();
                 }
                 else{
-                    document.execCommand("formatblock", null, "<H3>");
+                    document.execCommand("formatBlock", null, "<H3>");
                 }
             }
 
             $scope.richEditorApi.clearBlock = function(){
-                document.execCommand("formatblock", null, "<P>");
+                document.execCommand("formatBlock", null, "<P>");
             }
 
             $scope.richEditorApi.toggleUnorderedList = function(){
@@ -350,11 +339,11 @@ angular.module("richeditor",[])
             }
 
             $scope.richEditorApi.isH1 = function(){
-                return document.queryCommandValue('formatblock') == "h2";
+                return document.queryCommandValue('formatBlock') == "h2";
             }
 
             $scope.richEditorApi.isH2 = function(){
-                return document.queryCommandValue('formatblock') == "h3";
+                return document.queryCommandValue('formatBlock') == "h3";
             }
 
             $scope.richEditorApi.isOL = function(){
@@ -472,7 +461,6 @@ angular.module("richeditor",[])
                 elem: document.createElement("span"),
                 isCapturing: false, // This is set through a watch on elem.parentElement
                 start: function(initString){
-                    preventEmptyNode();
                     $timeout(function(){
                         var newnode = angular.element($scope.richEditorApi.capture.elem);
                         newnode.text(initString);
