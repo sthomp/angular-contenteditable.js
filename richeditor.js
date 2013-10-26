@@ -241,22 +241,21 @@ angular.module("richeditor",[])
                         document.execCommand("formatBlock", null, "<H3>");
                     }
                 },
-                // If either UL or OL are appliend then clear them
                 clearLists: function(){
+                    // Toggle each list type twice to make sure it clears
+                    $scope.richEditorApi.toggleOrderedList();
+                    $scope.richEditorApi.toggleOrderedList();
                     if($scope.richEditorApi.isOL()){
                         $scope.richEditorApi.toggleOrderedList();
                     }
+                    $scope.richEditorApi.toggleUnorderedList();
+                    $scope.richEditorApi.toggleUnorderedList();
                     if($scope.richEditorApi.isUL()){
                         $scope.richEditorApi.toggleUnorderedList();
                     }
                 },
                 clearHeaders: function(){
-                    if($scope.richEditorApi.isH1()){
-                        $scope.richEditorApi.toggleBlockH1();
-                    }
-                    if($scope.richEditorApi.isH2()){
-                        $scope.richEditorApi.toggleBlockH2();
-                    }
+                    $scope.richEditorApi.clearBlock();
                 },
                 clearBlock: function(){
                     document.execCommand("formatBlock", null, "<P>");
