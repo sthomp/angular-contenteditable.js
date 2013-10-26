@@ -270,10 +270,6 @@ angular.module("richeditor",[])
                     $scope.richEditorApi.clearLists();
                     document.execCommand("insertOrderedList", null, false);
                 },
-                insertLinkBlock: function(url, text, clazz){
-                    var html = '<a href="' + url + '" contenteditable="false" target="_" class ="' + clazz + '" readonly>' + text + '</a>';
-                    pasteHtmlAtCaret(html, false);
-                },
                 isBold: function(){
                     return document.queryCommandState('bold');
                 },
@@ -333,6 +329,16 @@ angular.module("richeditor",[])
                     var range = document.createRange();
                     range.selectNodeContents($element[0]);
                     range.collapse(false);
+                    var selection = $window.getSelection();
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                },
+                getCurrentSelection: function(){
+                    var selection = $window.getSelection();
+                    var range = selection.getRangeAt(0).cloneRange();
+                    return range;
+                },
+                setCurrentSelection: function(range){
                     var selection = $window.getSelection();
                     selection.removeAllRanges();
                     selection.addRange(range);
@@ -587,53 +593,6 @@ angular.module("richeditor",[])
             });
 
             /* Helper Functions */
-
-            /* http://stackoverflow.com/questions/6690752/insert-html-at-caret-in-a-contenteditable-div/6691294#6691294
-            * by Tim Down */
-            function pasteHtmlAtCaret(html, selectPastedContent) {
-                var sel, range;
-                if (window.getSelection) {
-                    // IE9 and non-IE
-                    sel = window.getSelection();
-                    if (sel.getRangeAt && sel.rangeCount) {
-                        range = sel.getRangeAt(0);
-                        range.deleteContents();
-
-                        // Range.createContextualFragment() would be useful here but is
-                        // only relatively recently standardized and is not supported in
-                        // some browsers (IE9, for one)
-                        var el = document.createElement("div");
-                        el.innerHTML = html;
-                        var frag = document.createDocumentFragment(), node, lastNode;
-                        while ( (node = el.firstChild) ) {
-                            lastNode = frag.appendChild(node);
-                        }
-                        var firstNode = frag.firstChild;
-                        range.insertNode(frag);
-
-                        // Preserve the selection
-                        if (lastNode) {
-                            range = range.cloneRange();
-                            range.setStartAfter(lastNode);
-                            if (selectPastedContent) {
-                                range.setStartBefore(firstNode);
-                            } else {
-                                range.collapse(true);
-                            }
-                            sel.removeAllRanges();
-                            sel.addRange(range);
-                        }
-                    }
-                } else if ( (sel = document.selection) && sel.type != "Control") {
-                    // IE < 9
-                    var originalRange = sel.createRange();
-                    originalRange.collapse(true);
-                    sel.createRange().pasteHTML(html);
-                    var range = sel.createRange();
-                    range.setEndPoint("StartToStart", originalRange);
-                    range.select();
-                }
-            }
 
             // http://stackoverflow.com/questions/1335252/how-can-i-get-the-dom-element-which-contains-the-current-selection/1335347#1335347 
             // by Tim Down
