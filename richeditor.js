@@ -243,15 +243,15 @@ angular.module("richeditor",[])
                 },
                 clearLists: function(){
                     // Toggle each list type twice to make sure it clears
-                    $scope.richEditorApi.toggleOrderedList();
-                    $scope.richEditorApi.toggleOrderedList();
+                    document.execCommand("insertOrderedList", null, false);
+                    document.execCommand("insertOrderedList", null, false);
                     if($scope.richEditorApi.isOL()){
-                        $scope.richEditorApi.toggleOrderedList();
+                        document.execCommand("insertOrderedList", null, false);
                     }
-                    $scope.richEditorApi.toggleUnorderedList();
-                    $scope.richEditorApi.toggleUnorderedList();
+                    document.execCommand("insertUnorderedList", null, false);
+                    document.execCommand("insertUnorderedList", null, false);
                     if($scope.richEditorApi.isUL()){
-                        $scope.richEditorApi.toggleUnorderedList();
+                        document.execCommand("insertUnorderedList", null, false);
                     }
                 },
                 clearHeaders: function(){
@@ -262,10 +262,12 @@ angular.module("richeditor",[])
                 },
                 toggleUnorderedList: function(){
                     $scope.richEditorApi.clearHeaders();
+                    $scope.richEditorApi.clearLists();
                     document.execCommand("insertUnorderedList", null, false);
                 },
                 toggleOrderedList: function(){
                     $scope.richEditorApi.clearHeaders();
+                    $scope.richEditorApi.clearLists();
                     document.execCommand("insertOrderedList", null, false);
                 },
                 insertLinkBlock: function(url, text, clazz){
