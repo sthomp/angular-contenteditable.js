@@ -186,6 +186,128 @@ angular.module("richeditor",[])
                             }
                         }
                     }
+                },
+                /*
+                 *  API Methods
+                 */
+                toggleSelectionBold: function(){
+                    document.execCommand("bold", null, false);
+                },
+                toggleSelectionItalic: function(){
+                    document.execCommand("italic", null, false);
+                },
+                toggleSelectionUnderline: function(){
+                    document.execCommand("underline", null, false);
+                },
+                setSelectionLink: function(url){
+                    document.execCommand("CreateLink", null, url);
+                },
+                removeLink: function(){
+                    // TODO: Need a better way to remove the link
+                    document.execCommand("unlink", null, null);
+                },
+                toggleBlockH1: function(){
+                    if($scope.richEditorApi.isH1()){
+                        $scope.richEditorApi.clearBlock();
+                    }
+                    else{
+                        $scope.richEditorApi.clearLists();
+                        document.execCommand("formatBlock", null, "<H2>");
+                    }
+                },
+                toggleBlockH2: function(){
+                    if($scope.richEditorApi.isH2()){
+                        $scope.richEditorApi.clearBlock();
+                    }
+                    else{
+                        $scope.richEditorApi.clearLists();
+                        document.execCommand("formatBlock", null, "<H3>");
+                    }
+                },
+                // If either UL or OL are appliend then clear them
+                clearLists: function(){
+                    if($scope.richEditorApi.isOL()){
+                        $scope.richEditorApi.toggleOrderedList();
+                    }
+                    if($scope.richEditorApi.isUL()){
+                        $scope.richEditorApi.toggleUnorderedList();
+                    }
+                },
+                clearBlock: function(){
+                    document.execCommand("formatBlock", null, "<P>");
+                },
+                toggleUnorderedList: function(){
+                    document.execCommand("insertUnorderedList", null, false);
+                },
+                toggleOrderedList: function(){
+                    document.execCommand("insertOrderedList", null, false);
+                },
+                insertLinkBlock: function(url, text, clazz){
+                    var html = '<a href="' + url + '" contenteditable="false" target="_" class ="' + clazz + '" readonly>' + text + '</a>';
+                    pasteHtmlAtCaret(html, false);
+                },
+                isBold: function(){
+                    return document.queryCommandState('bold');
+                },
+                isItalic: function(){
+                    return document.queryCommandState('italic');
+                },
+                isUnderline: function(){
+                    return document.queryCommandState('underline');
+                },
+                isH1: function(){
+                    return document.queryCommandValue('formatBlock') == "h2";
+                },
+                isH2: function(){
+                    return document.queryCommandValue('formatBlock') == "h3";
+                },
+                isOL: function(){
+                    return document.queryCommandState('insertOrderedList');
+                },
+                isUL: function(){
+                    return document.queryCommandState('insertUnorderedList');
+                },
+                clearFormatting: function(){
+                    if($scope.richEditorApi.isBold()){
+                        $scope.richEditorApi.toggleSelectionBold();
+                    }
+
+                    if($scope.richEditorApi.isItalic()){
+                        $scope.richEditorApi.toggleSelectionItalic();
+                    }
+
+                    if($scope.richEditorApi.isUnderline()){
+                        $scope.richEditorApi.toggleSelectionUnderline();
+                    }
+                },
+                isLink: function(){
+                    var currentElement = getSelectionBoundaryElement(true);
+                    var isLink = traverseUpDom(currentElement, function(elem){
+                        return elem.tagName.toLowerCase() == "a";
+                    });
+                    if(isLink){
+                        return true;
+                    }
+                    else{
+                        return false;
+                    }
+                },
+                isLinkWithClass: function(clazz){
+                    var currentElement = getSelectionBoundaryElement(true);
+                    var isLinkWithClass = traverseUpDom(currentElement, function(elem){
+                        return (elem.tagName.toLowerCase() == "a") && (elem.className.split(" ").indexOf(clazz) != -1);
+                    });
+                    return isLinkWithClass;
+                },
+                focus: function(){
+                    $element.focus();
+                    // set cursor at the end
+                    var range = document.createRange();
+                    range.selectNodeContents($element[0]);
+                    range.collapse(false);
+                    var selection = $window.getSelection();
+                    selection.removeAllRanges();
+                    selection.addRange(range);
                 }
             };
 
@@ -278,117 +400,6 @@ angular.module("richeditor",[])
                 document.execCommand('insertText', false, pastedText);
             });
 
-            /* API */
-
-            $scope.richEditorApi.toggleSelectionBold = function(){
-                document.execCommand("bold", null, false);
-            }
-
-            $scope.richEditorApi.toggleSelectionItalic = function(){
-                document.execCommand("italic", null, false);
-            }
-
-            $scope.richEditorApi.toggleSelectionUnderline = function(){
-                document.execCommand("underline", null, false);
-            }
-
-            $scope.richEditorApi.setSelectionLink = function(url){
-                document.execCommand("CreateLink", null, url);
-            }
-
-            $scope.richEditorApi.removeLink = function(){
-                // TODO: Need a better way to remove the link
-                document.execCommand("unlink", null, null);
-            }
-
-            $scope.richEditorApi.toggleBlockH1 = function(){
-                if($scope.richEditorApi.isH1()){
-                    $scope.richEditorApi.clearBlock();
-                }
-                else{
-                    $scope.richEditorApi.clearLists();
-                    document.execCommand("formatBlock", null, "<H2>");
-                }
-            }
-
-            $scope.richEditorApi.toggleBlockH2 = function(){
-                if($scope.richEditorApi.isH2()){
-                    $scope.richEditorApi.clearBlock();
-                }
-                else{
-                    $scope.richEditorApi.clearLists();
-                    document.execCommand("formatBlock", null, "<H3>");
-                }
-            }
-
-            // If either UL or OL are appliend then clear them
-            $scope.richEditorApi.clearLists = function(){
-                if($scope.richEditorApi.isOL()){
-                    $scope.richEditorApi.toggleOrderedList();
-                }
-                if($scope.richEditorApi.isUL()){
-                    $scope.richEditorApi.toggleUnorderedList();
-                }
-            }
-
-            $scope.richEditorApi.clearBlock = function(){
-                document.execCommand("formatBlock", null, "<P>");
-            }
-
-            $scope.richEditorApi.toggleUnorderedList = function(){
-                document.execCommand("insertUnorderedList", null, false);
-            }
-
-            $scope.richEditorApi.toggleOrderedList = function(){
-                document.execCommand("insertOrderedList", null, false);
-            }
-
-            $scope.richEditorApi.insertLinkBlock = function(url, text, clazz){
-                var html = '<a href="' + url + '" contenteditable="false" target="_" class ="' + clazz + '" readonly>' + text + '</a>';
-                pasteHtmlAtCaret(html, false);
-            }
-
-            $scope.richEditorApi.isBold = function(){
-                return document.queryCommandState('bold');
-            }
-
-            $scope.richEditorApi.isItalic = function(){
-                return document.queryCommandState('italic');
-            }
-
-            $scope.richEditorApi.isUnderline = function(){
-                return document.queryCommandState('underline');
-            }
-
-            $scope.richEditorApi.isH1 = function(){
-                return document.queryCommandValue('formatBlock') == "h2";
-            }
-
-            $scope.richEditorApi.isH2 = function(){
-                return document.queryCommandValue('formatBlock') == "h3";
-            }
-
-            $scope.richEditorApi.isOL = function(){
-                return document.queryCommandState('insertOrderedList');
-            }
-
-            $scope.richEditorApi.isUL = function(){
-                return document.queryCommandState('insertUnorderedList');
-            }
-
-            $scope.richEditorApi.clearFormatting = function(){
-                if($scope.richEditorApi.isBold()){
-                    $scope.richEditorApi.toggleSelectionBold();
-                }
-
-                if($scope.richEditorApi.isItalic()){
-                    $scope.richEditorApi.toggleSelectionItalic();
-                }
-
-                if($scope.richEditorApi.isUnderline()){
-                    $scope.richEditorApi.toggleSelectionUnderline();
-                }
-            }
 
             // Traverse up from the current node
             // Return true if the given condition is met
@@ -415,38 +426,6 @@ angular.module("richeditor",[])
                     return elem == $element[0];
                 });
                 return result;
-            }
-
-            $scope.richEditorApi.isLink = function(){
-                var currentElement = getSelectionBoundaryElement(true);
-                var isLink = traverseUpDom(currentElement, function(elem){
-                    return elem.tagName.toLowerCase() == "a";
-                });
-                if(isLink){
-                    return true;
-                }
-                else{
-                    return false;
-                }
-            }
-
-            $scope.richEditorApi.isLinkWithClass = function(clazz){
-                var currentElement = getSelectionBoundaryElement(true);
-                var isLinkWithClass = traverseUpDom(currentElement, function(elem){
-                    return (elem.tagName.toLowerCase() == "a") && (elem.className.split(" ").indexOf(clazz) != -1);
-                });
-                return isLinkWithClass;
-            }
-
-            $scope.richEditorApi.focus = function(){
-                $element.focus();
-                // set cursor at the end
-                var range = document.createRange();
-                range.selectNodeContents($element[0]);
-                range.collapse(false);
-                var selection = $window.getSelection();
-                selection.removeAllRanges();
-                selection.addRange(range);
             }
 
             /* Capture Text Input */
