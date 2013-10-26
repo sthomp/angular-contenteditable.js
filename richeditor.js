@@ -185,6 +185,23 @@ angular.module("richeditor",[])
                                 return false;
                             }
                         }
+                    },
+                    isMultiLineSelection: function(){
+                        var selection = $window.getSelection();
+                        var startRange = selection.getRangeAt(0).cloneRange();
+                        startRange.collapse(true);
+                        var endRange = selection.getRangeAt(0).cloneRange();
+                        endRange.collapse(false);
+                        if(startRange.getClientRects().length == 0 || endRange.getClientRects().length==0){
+                            // This is a strange case where there is no clientRect
+                            // This only seems to occur when multiple lines are selected though.
+                            return true;
+                        }
+                        else{
+                            var startRectangle = startRange.getClientRects().item(0);
+                            var endRectangle = endRange.getClientRects().item(0);
+                            return startRectangle.top != endRectangle.top;
+                        }
                     }
                 },
                 /*
@@ -233,13 +250,23 @@ angular.module("richeditor",[])
                         $scope.richEditorApi.toggleUnorderedList();
                     }
                 },
+                clearHeaders: function(){
+                    if($scope.richEditorApi.isH1()){
+                        $scope.richEditorApi.toggleBlockH1();
+                    }
+                    if($scope.richEditorApi.isH2()){
+                        $scope.richEditorApi.toggleBlockH2();
+                    }
+                },
                 clearBlock: function(){
                     document.execCommand("formatBlock", null, "<P>");
                 },
                 toggleUnorderedList: function(){
+                    $scope.richEditorApi.clearHeaders();
                     document.execCommand("insertUnorderedList", null, false);
                 },
                 toggleOrderedList: function(){
+                    $scope.richEditorApi.clearHeaders();
                     document.execCommand("insertOrderedList", null, false);
                 },
                 insertLinkBlock: function(url, text, clazz){
@@ -325,13 +352,13 @@ angular.module("richeditor",[])
             // React to selectoin changes
             $scope.$watchCollection('[richEditorApi.currentSelection.anchorOffset, richEditorApi.currentSelection.focusOffset, richEditorApi.currentSelection.anchorNode, richEditorApi.currentSelection.focusNode]', function() {
                 var selection = $window.getSelection();
-                var isRangeSelection = selection.anchorOffset!=selection.focusOffset;
+                var isRangeSelection = $scope.richEditorApi.rangeHelper.isRangeSelection();
 
-                // ensureOutsideAtomicElement();
                 clearCaptureRangeIfCursorIsOutside();
                 
                 if(isRangeSelection && isElementInsideEditor(selection.focusNode)){
-                    $scope.$emit("richeditor:selection");
+                    var isMultiLineSelection = $scope.richEditorApi.rangeHelper.isMultiLineSelection();
+                    $scope.$emit("richeditor:selection", isMultiLineSelection);
                 }
             });
             // Listen to mouse and keyboard and update the selection so we can capture selection change events
