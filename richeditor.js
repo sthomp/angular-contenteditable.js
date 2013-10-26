@@ -300,9 +300,8 @@ angular.module("richeditor",[])
                     img.setAttribute('src', url)
                     figure.appendChild(img);
                     // insert a paragraph node before incase we need to edit above the image
-                    $element[0].insertBefore(angular.element($scope.richEditorApi.defaultNode)[0],elemOfCurrentLine);
-                    $element[0].insertBefore(figure,elemOfCurrentLine);
-                    // $element[0].insertBefore(document.createElement("P"),figure);
+                    angular.element(elemOfCurrentLine).after(figure);
+                    angular.element(figure).after(angular.element($scope.richEditorApi.defaultNode));
                 },
                 clearFormatting: function(){
                     if($scope.richEditorApi.isBold()){
@@ -443,10 +442,37 @@ angular.module("richeditor",[])
             $element.on("paste", function(e){
                 e.preventDefault();
                 var imageUrlRegex = /^https?:\/\/(?:[a-z\-]+\.)+[a-z]{2,6}(?:\/[^\/#?]+)+\.(?:jpe?g|gif|png)$/i;
+                var youtubeUrl = /youtube\.com\/watch/i;
                 var html = '';
                 var pastedText = e.originalEvent.clipboardData.getData('text/plain');
+
                 if(imageUrlRegex.test(pastedText)){
                     $scope.richEditorApi.insertImage(pastedText);
+                }
+                else if(youtubeUrl.test(pastedText)){
+                    var vidWidth = 425;
+                    var vidHeight = 344;
+
+                    var obj = '<object contenteditable="false" width="' + vidWidth + '" height="' + vidHeight + '">' +
+                        '<param name="movie" value="http://www.youtube.com/v/[vid]&hl=en&fs=1">' +
+                        '</param><param name="allowFullScreen" value="true"></param><param ' +
+                        'name="allowscriptaccess" value="always"></param><em' +
+                        'bed src="http://www.youtube.com/v/[vid]&hl=en&fs=1" ' +
+                        'type="application/x-shockwave-flash" allowscriptaccess="always" ' +
+                        'allowfullscreen="true" width="' + vidWidth + '" ' + 'height="' +
+                        vidHeight + '"></embed></object> ';
+
+                    var vid = pastedText.match(/(?:v=)([\w\-]+)/g);
+                    if (vid.length) {
+                        var youtubeVideo = obj.replace(/\[vid\]/g, vid[0].replace('v=',''));
+                        var youtubeVideoElement = angular.element(youtubeVideo);
+                        var elemOfCurrentLine = getElementOfCurrentLine();
+                        angular.element(elemOfCurrentLine).after(youtubeVideoElement);
+                        angular.element(youtubeVideoElement).after(angular.element($scope.richEditorApi.defaultNode));
+                        // insert a paragraph node before incase we need to edit above the image
+                        // $element[0].insertBefore(angular.element($scope.richEditorApi.defaultNode)[0],elemOfCurrentLine);
+                        // $element[0].insertBefore(youtubeVideoElement,elemOfCurrentLine);
+                    }
                 }
                 else{
                     document.execCommand('insertText', false, pastedText);
