@@ -155,6 +155,7 @@ angular.module("richeditor",[])
         controller: ['$scope', '$element', '$timeout', '$window', '$document',function($scope, $element, $timeout, $window, $document){
 
             $scope.richEditorApi = {
+                defaultNode: '<p style="min-height:1em;"></p>',
                 currentSelection: {
                     anchorOffset: null,
                     focusOffset: null,
@@ -291,6 +292,18 @@ angular.module("richeditor",[])
                 isUL: function(){
                     return document.queryCommandState('insertUnorderedList');
                 },
+                insertImage: function(url){
+                    var elemOfCurrentLine = getElementOfCurrentLine();
+                    var figure = document.createElement("FIGURE");
+                    figure.setAttribute('contenteditable',false);
+                    var img = document.createElement("IMG");
+                    img.setAttribute('src', url)
+                    figure.appendChild(img);
+                    // insert a paragraph node before incase we need to edit above the image
+                    $element[0].insertBefore(angular.element($scope.richEditorApi.defaultNode)[0],elemOfCurrentLine);
+                    $element[0].insertBefore(figure,elemOfCurrentLine);
+                    // $element[0].insertBefore(document.createElement("P"),figure);
+                },
                 clearFormatting: function(){
                     if($scope.richEditorApi.isBold()){
                         $scope.richEditorApi.toggleSelectionBold();
@@ -375,9 +388,9 @@ angular.module("richeditor",[])
 
 
             // Initialize the editor with an empty <p> tag
-            $element.append('<p style="min-height:1em;"></p>');
             if($element.text().length==0){
                 $element.addClass("empty");
+                $element.append($scope.richEditorApi.defaultNode);
             }
 
             // Make sure <br> tags are off when pressing return
@@ -429,9 +442,16 @@ angular.module("richeditor",[])
 
             $element.on("paste", function(e){
                 e.preventDefault();
+                var imageUrlRegex = /^https?:\/\/(?:[a-z\-]+\.)+[a-z]{2,6}(?:\/[^\/#?]+)+\.(?:jpe?g|gif|png)$/i;
                 var html = '';
                 var pastedText = e.originalEvent.clipboardData.getData('text/plain');
-                document.execCommand('insertText', false, pastedText);
+                if(imageUrlRegex.test(pastedText)){
+                    $scope.richEditorApi.insertImage(pastedText);
+                }
+                else{
+                    document.execCommand('insertText', false, pastedText);
+                }
+                
             });
 
 
@@ -453,6 +473,18 @@ angular.module("richeditor",[])
                 else{
                     return traverseUpDom(elem.parentNode, fn);
                 }
+            }
+
+            function getElementOfCurrentLine(){
+                function traverseUpDomToEditorRoot(elem){
+                    if(elem.parentNode == $element[0]){
+                        return elem;
+                    }
+                    else{
+                        return traverseUpDomToEditorRoot(elem.parentNode);
+                    }
+                }
+                return traverseUpDomToEditorRoot($window.getSelection().anchorNode);
             }
 
             function isElementInsideEditor(elem){
