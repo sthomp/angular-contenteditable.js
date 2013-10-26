@@ -306,6 +306,7 @@ angular.module("richeditor",[])
                     $scope.richEditorApi.clearBlock();
                 }
                 else{
+                    $scope.richEditorApi.clearLists();
                     document.execCommand("formatBlock", null, "<H2>");
                 }
             }
@@ -315,7 +316,18 @@ angular.module("richeditor",[])
                     $scope.richEditorApi.clearBlock();
                 }
                 else{
+                    $scope.richEditorApi.clearLists();
                     document.execCommand("formatBlock", null, "<H3>");
+                }
+            }
+
+            // If either UL or OL are appliend then clear them
+            $scope.richEditorApi.clearLists = function(){
+                if($scope.richEditorApi.isOL()){
+                    $scope.richEditorApi.toggleOrderedList();
+                }
+                if($scope.richEditorApi.isUL()){
+                    $scope.richEditorApi.toggleUnorderedList();
                 }
             }
 
