@@ -370,19 +370,24 @@ angular.module("richeditor",[])
             }, 200);
             // React to selectoin changes
             $scope.$watchCollection('[richEditorApi.currentSelection.anchorOffset, richEditorApi.currentSelection.focusOffset, richEditorApi.currentSelection.anchorNode, richEditorApi.currentSelection.focusNode]', function() {
-                var selection = $window.getSelection();
-                var isRangeSelection = $scope.richEditorApi.rangeHelper.isRangeSelection();
+                
 
                 clearCaptureRangeIfCursorIsOutside();
                 
-                if(isRangeSelection && isElementInsideEditor(selection.focusNode)){
-                    var isMultiLineSelection = $scope.richEditorApi.rangeHelper.isMultiLineSelection();
-                    $scope.$emit("richeditor:selection", isMultiLineSelection);
-                }
+                // var selection = $window.getSelection();
+                // var isRangeSelection = $scope.richEditorApi.rangeHelper.isRangeSelection();
+                // if(isRangeSelection && isElementInsideEditor(selection.focusNode)){
+                //     var isMultiLineSelection = $scope.richEditorApi.rangeHelper.isMultiLineSelection();
+                //     $scope.$emit("richeditor:selection", isMultiLineSelection);
+                // }
             });
             // Listen to mouse and keyboard and update the selection so we can capture selection change events
             $document.on("keydown keyup keypress mousemove mousedown mouseup mouseclick", function(e){
                 updateSelection(e);
+
+                if(e.type == "mouseup"){
+                    $scope.$emit("richeditor:mouseup");
+                }
             });
 
 
