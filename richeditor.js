@@ -358,6 +358,8 @@ angular.module("richeditor",[])
                 }
             };
 
+            $element.append(angular.element($scope.richEditorApi.defaultNode));
+
             // Updating the current selection requires throttling to improve performance
             var updateSelection = throttle(function(e){
                 $timeout(function(){
@@ -406,33 +408,6 @@ angular.module("richeditor",[])
 
             });
 
-            function isEmpty(){
-                if($element.text().length!=0){
-                    return false;
-                }
-                else{
-                    /* Check for non-text elements like images and video */
-                    var children = $element.children();
-                    for(var i=0;i<children.length;i++){
-                        var c = children[i];
-                        if(c.nodeName.toLowerCase() != 'p'){
-                            return true;
-                        }
-                    }
-                    /* If no images/videos found then check the content length */
-                    if($element.text().length==0){
-                        return true;
-                    }
-                }
-            }
-
-
-            // Initialize the editor with an empty <p> tag
-            if(isEmpty()){
-                $element.addClass("empty");
-                $element.append($scope.richEditorApi.defaultNode);
-            }
-
             // Make sure <br> tags are off when pressing return
             document.execCommand('insertBrOnReturn',false, false);
 
@@ -446,18 +421,12 @@ angular.module("richeditor",[])
 
             // Called every time the content changes
             $element.on("input", function(e){
-                if(isEmpty()){
-                    $element.addClass("empty");
-                }
-                else{
-                    $element.removeClass("empty");
-                }
-
+                preventEmptyNode();
                 $scope.$emit("richeditor:input",e);
             });
 
             $element.on("keypress", function(e){
-                preventEmptyNode();
+                
 
                 if(e.keyCode == 13 /* return */){
                     
@@ -494,7 +463,7 @@ angular.module("richeditor",[])
                     var vidWidth = 425;
                     var vidHeight = 344;
 
-                    var obj = '<object contenteditable="false" width="' + vidWidth + '" height="' + vidHeight + '">' +
+                    var obj = '<object width="' + vidWidth + '" height="' + vidHeight + '">' +
                         '<param name="movie" value="http://www.youtube.com/v/[vid]&hl=en&fs=1">' +
                         '</param><param name="allowFullScreen" value="true"></param><param ' +
                         'name="allowscriptaccess" value="always"></param><em' +
@@ -505,14 +474,14 @@ angular.module("richeditor",[])
 
                     var vid = pastedText.match(/(?:v=)([\w\-]+)/g);
                     if (vid.length) {
+                        var figure = document.createElement("FIGURE");
+                        figure.setAttribute('contenteditable',false);
                         var youtubeVideo = obj.replace(/\[vid\]/g, vid[0].replace('v=',''));
                         var youtubeVideoElement = angular.element(youtubeVideo);
                         var elemOfCurrentLine = getElementOfCurrentLine();
-                        angular.element(elemOfCurrentLine).after(youtubeVideoElement);
-                        angular.element(youtubeVideoElement).after(angular.element($scope.richEditorApi.defaultNode));
-                        // insert a paragraph node before incase we need to edit above the image
-                        // $element[0].insertBefore(angular.element($scope.richEditorApi.defaultNode)[0],elemOfCurrentLine);
-                        // $element[0].insertBefore(youtubeVideoElement,elemOfCurrentLine);
+                        angular.element(figure).append(youtubeVideoElement);
+                        angular.element(elemOfCurrentLine).after(figure);
+                        angular.element(figure).after(angular.element($scope.richEditorApi.defaultNode));
                     }
                 }
                 else{

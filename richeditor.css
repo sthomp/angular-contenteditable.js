@@ -1,5 +1,7 @@
 
-.st-rich-editor.empty p:first-child:before{
+.st-rich-editor:empty:before,
+.st-rich-editor :only-child:empty:before
+{
 	content: 'Click here to start typing';
 	color:#888;
 }
