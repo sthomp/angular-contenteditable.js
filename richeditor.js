@@ -156,6 +156,7 @@ angular.module("richeditor",[])
 
             $scope.richEditorApi = {
                 defaultNode: '<p style="min-height:1em;"></p>',
+                enterCount: 0,      // Used to track consecutive presses of enter
                 currentSelection: {
                     anchorOffset: null,
                     focusOffset: null,
@@ -388,6 +389,21 @@ angular.module("richeditor",[])
                 if(e.type == "mouseup"){
                     $scope.$emit("richeditor:mouseup");
                 }
+                else if(e.type == "keydown"){
+                    if(e.which == 13 /* enter/return */){
+                        $scope.richEditorApi.enterCount += 1;
+                        if($scope.richEditorApi.enterCount == 2){
+                            document.execCommand("insertHorizontalRule");
+                            $scope.richEditorApi.enterCount = 0;
+                        }
+                    }
+                    else{
+                        $scope.richEditorApi.enterCount = 0;
+                    }
+
+                    $scope.$emit("richeditor:keydown",e);
+                }
+
             });
 
             function isEmpty(){
@@ -666,13 +682,6 @@ angular.module("richeditor",[])
                 else{
                     $scope.richEditorApi.capture.isCapturing = true;
                 }
-            });
-
-            /* Events */
-            
-            $element.on("keydown", function(e){
-                // Emit the keydown event
-                $scope.$emit("richeditor:keydown",e);
             });
 
             /* Helper Functions */
