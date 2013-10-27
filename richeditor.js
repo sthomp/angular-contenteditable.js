@@ -390,9 +390,29 @@ angular.module("richeditor",[])
                 }
             });
 
+            function isEmpty(){
+                if($element.text().length!=0){
+                    return false;
+                }
+                else{
+                    /* Check for non-text elements like images and video */
+                    var children = $element.children();
+                    for(var i=0;i<children.length;i++){
+                        var c = children[i];
+                        if(c.nodeName.toLowerCase() != 'p'){
+                            return true;
+                        }
+                    }
+                    /* If no images/videos found then check the content length */
+                    if($element.text().length==0){
+                        return true;
+                    }
+                }
+            }
+
 
             // Initialize the editor with an empty <p> tag
-            if($element.text().length==0){
+            if(isEmpty()){
                 $element.addClass("empty");
                 $element.append($scope.richEditorApi.defaultNode);
             }
@@ -410,7 +430,7 @@ angular.module("richeditor",[])
 
             // Called every time the content changes
             $element.on("input", function(e){
-                if($element.text().length==0){
+                if(isEmpty()){
                     $element.addClass("empty");
                 }
                 else{
