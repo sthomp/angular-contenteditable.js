@@ -263,14 +263,20 @@ angular.module("richeditor",[])
                     document.execCommand("formatBlock", null, "<P>");
                 },
                 toggleUnorderedList: function(){
-                    $scope.richEditorApi.clearHeaders();
-                    $scope.richEditorApi.clearLists();
-                    document.execCommand("insertUnorderedList", null, false);
+                    var isList = $scope.richEditorApi.isUL();
+                    $scope.richEditorApi.clearLists();      // The order is important since block elements cascade inside lists
+                    $scope.richEditorApi.clearHeaders();    // The order is important since block elements cascade inside lists
+                    if(!isList){
+                        document.execCommand("insertUnorderedList", null, false);
+                    }
                 },
                 toggleOrderedList: function(){
-                    $scope.richEditorApi.clearHeaders();
-                    $scope.richEditorApi.clearLists();
-                    document.execCommand("insertOrderedList", null, false);
+                    var isList = $scope.richEditorApi.isOL();
+                    $scope.richEditorApi.clearLists();      // The order is important since block elements cascade inside lists
+                    $scope.richEditorApi.clearHeaders();    // The order is important since block elements cascade inside lists
+                    if(!isList){
+                        document.execCommand("insertOrderedList", null, false);
+                    }
                 },
                 isBold: function(){
                     return document.queryCommandState('bold');
@@ -358,7 +364,7 @@ angular.module("richeditor",[])
                 }
             };
 
-            $element.append(angular.element($scope.richEditorApi.defaultNode));
+            // $element.append(angular.element($scope.richEditorApi.defaultNode));
 
             // Updating the current selection requires throttling to improve performance
             var updateSelection = throttle(function(e){
@@ -388,24 +394,14 @@ angular.module("richeditor",[])
             $document.on("keydown keyup keypress mousemove mousedown mouseup mouseclick", function(e){
                 updateSelection(e);
 
-                if(e.type == "mouseup"){
-                    $scope.$emit("richeditor:mouseup");
-                }
-                else if(e.type == "keydown"){
-                    if(e.which == 13 /* enter/return */){
-                        $scope.richEditorApi.enterCount += 1;
-                        if($scope.richEditorApi.enterCount == 2){
-                            document.execCommand("insertHorizontalRule");
-                            $scope.richEditorApi.enterCount = 0;
-                        }
+                if(e.type == "mouseup" || e.type == "keyup"){
+                    var selection = $window.getSelection();
+                    var isRangeSelection = $scope.richEditorApi.rangeHelper.isRangeSelection();
+                    if(isRangeSelection && isElementInsideEditor(selection.focusNode)){
+                        var isMultiLineSelection = $scope.richEditorApi.rangeHelper.isMultiLineSelection();
+                        $scope.$emit("richeditor:textselection", isMultiLineSelection);
                     }
-                    else{
-                        $scope.richEditorApi.enterCount = 0;
-                    }
-
-                    $scope.$emit("richeditor:keydown",e);
                 }
-
             });
 
             // Make sure <br> tags are off when pressing return
@@ -419,10 +415,27 @@ angular.module("richeditor",[])
                 }
             }
 
+            $element.on("mouseup", function(e){
+                $scope.$emit("richeditor:mouseup");
+            });
+
+            $element.on("keydown", function(e){
+                if(e.which == 13 /* enter/return */){
+                    $scope.richEditorApi.enterCount += 1;
+                    if($scope.richEditorApi.enterCount == 2){
+                        document.execCommand("insertHorizontalRule");
+                        $scope.richEditorApi.enterCount = 0;
+                    }
+                }
+                else{
+                    $scope.richEditorApi.enterCount = 0;
+                }
+
+                $scope.$emit("richeditor:keydown",e);
+            });
+
             // Called every time the content changes
             $element.on("input", function(e){
-                preventEmptyNode();
-
                 if($element.text().length==0){
                     $element.addClass("empty");
                 }
@@ -435,7 +448,7 @@ angular.module("richeditor",[])
 
             $element.on("keypress", function(e){
                 
-
+                preventEmptyNode();
                 if(e.keyCode == 13 /* return */){
                     
                     // Clear formatting when the user hits enter
@@ -494,6 +507,7 @@ angular.module("richeditor",[])
                 }
                 else{
                     document.execCommand('insertText', false, pastedText);
+                    preventEmptyNode();
                 }
                 
             });
