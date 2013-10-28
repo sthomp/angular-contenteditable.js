@@ -345,8 +345,15 @@ angular.module("richeditor",[])
                     var selection = $window.getSelection();
                     selection.removeAllRanges();
                     selection.addRange(range);
+                },
+                getHtml: function(){
+                    return $element.html();
                 }
             };
+
+            $element.on('blur keyup change input', function(e) {
+                $scope.$emit("richeditor:contentchange");
+            });
 
             // $element.append(angular.element($scope.richEditorApi.defaultNode));
 
@@ -655,7 +662,7 @@ angular.module("richeditor",[])
                 },
                 /* Note: this style of replace won't work with <span> because the browser will let the user edit the content of the <span> */
                 replaceAtomicLink: function(text){
-                    var newnode = angular.element("<input class='atomic-element' type=button value='" + text + "''>");
+                    var newnode = angular.element("<input class='atomic-element' type=button value='" + text + "'>");
                     newnode.attr("atomic-element",true);
                     // Use timeout to trigger the $watch
                     $timeout(function(){
@@ -718,7 +725,6 @@ angular.module("richeditor",[])
             }
         }],
         link: function(scope, element, attrs){
-        	
         }
     }
 }])
