@@ -175,12 +175,13 @@ angular.module("richeditor",[])
                         selection.addRange(range);
                     },
                     isRangeSelection: function(){
+                        var selection = $window.getSelection();
                         // Check if a range is selected or if its just a single cursor
-                        if($scope.richEditorApi.currentSelection.anchorNode != $scope.richEditorApi.currentSelection.focusNode){
+                        if(selection.anchorNode != selection.focusNode){
                             return true;
                         }
                         else{
-                            if($scope.richEditorApi.currentSelection.anchorOffset != $scope.richEditorApi.currentSelection.focusOffset){
+                            if(selection.anchorOffset != selection.focusOffset){
                                 return true;
                             }
                             else{
@@ -420,10 +421,11 @@ angular.module("richeditor",[])
             });
 
             $element.on("keydown", function(e){
+                /* Some code test mess around with double enter */
                 if(e.which == 13 /* enter/return */){
                     $scope.richEditorApi.enterCount += 1;
                     if($scope.richEditorApi.enterCount == 2){
-                        document.execCommand("insertHorizontalRule");
+                        // document.execCommand("insertHorizontalRule");
                         $scope.richEditorApi.enterCount = 0;
                     }
                 }
