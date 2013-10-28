@@ -231,7 +231,7 @@ angular.module("richeditor",[])
                         $scope.richEditorApi.clearBlock();
                     }
                     else{
-                        $scope.richEditorApi.clearLists();
+                        // $scope.richEditorApi.clearLists();
                         document.execCommand("formatBlock", null, "<H2>");
                     }
                 },
@@ -240,7 +240,7 @@ angular.module("richeditor",[])
                         $scope.richEditorApi.clearBlock();
                     }
                     else{
-                        $scope.richEditorApi.clearLists();
+                        // $scope.richEditorApi.clearLists();
                         document.execCommand("formatBlock", null, "<H3>");
                     }
                 },
