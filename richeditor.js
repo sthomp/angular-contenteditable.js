@@ -190,20 +190,13 @@ angular.module("richeditor",[])
                         }
                     },
                     isMultiLineSelection: function(){
-                        var selection = $window.getSelection();
-                        var startRange = selection.getRangeAt(0).cloneRange();
-                        startRange.collapse(true);
-                        var endRange = selection.getRangeAt(0).cloneRange();
-                        endRange.collapse(false);
-                        if(startRange.getClientRects().length == 0 || endRange.getClientRects().length==0){
-                            // This is a strange case where there is no clientRect
-                            // This only seems to occur when multiple lines are selected though.
+                        var startElement = getElementLineOfStartSelection();
+                        var endElement = getElementLineOfEndSelection();
+                        if(startElement == null || endElement == null){
                             return true;
                         }
                         else{
-                            var startRectangle = startRange.getClientRects().item(0);
-                            var endRectangle = endRange.getClientRects().item(0);
-                            return startRectangle.top != endRectangle.top;
+                            return startElement != endElement;
                         }
                     }
                 },
@@ -264,20 +257,10 @@ angular.module("richeditor",[])
                     document.execCommand("formatBlock", null, "<P>");
                 },
                 toggleUnorderedList: function(){
-                    var isList = $scope.richEditorApi.isUL();
-                    $scope.richEditorApi.clearLists();      // The order is important since block elements cascade inside lists
-                    $scope.richEditorApi.clearHeaders();    // The order is important since block elements cascade inside lists
-                    if(!isList){
-                        document.execCommand("insertUnorderedList", null, false);
-                    }
+                    document.execCommand("insertUnorderedList", null, false);
                 },
                 toggleOrderedList: function(){
-                    var isList = $scope.richEditorApi.isOL();
-                    $scope.richEditorApi.clearLists();      // The order is important since block elements cascade inside lists
-                    $scope.richEditorApi.clearHeaders();    // The order is important since block elements cascade inside lists
-                    if(!isList){
-                        document.execCommand("insertOrderedList", null, false);
-                    }
+                    document.execCommand("insertOrderedList", null, false);
                 },
                 isBold: function(){
                     return document.queryCommandState('bold');
@@ -301,7 +284,7 @@ angular.module("richeditor",[])
                     return document.queryCommandState('insertUnorderedList');
                 },
                 insertImage: function(url){
-                    var elemOfCurrentLine = getElementOfCurrentLine();
+                    var elemOfCurrentLine = getElementLineOfStartSelection();
                     var figure = document.createElement("FIGURE");
                     figure.setAttribute('contenteditable',false);
                     var img = document.createElement("IMG");
@@ -400,7 +383,9 @@ angular.module("richeditor",[])
                     var isRangeSelection = $scope.richEditorApi.rangeHelper.isRangeSelection();
                     if(isRangeSelection && isElementInsideEditor(selection.focusNode)){
                         var isMultiLineSelection = $scope.richEditorApi.rangeHelper.isMultiLineSelection();
-                        $scope.$emit("richeditor:textselection", isMultiLineSelection);
+                        if(!isMultiLineSelection){
+                            $scope.$emit("richeditor:textselection", isMultiLineSelection);
+                        }
                     }
                 }
             });
@@ -501,7 +486,7 @@ angular.module("richeditor",[])
                         figure.setAttribute('contenteditable',false);
                         var youtubeVideo = obj.replace(/\[vid\]/g, vid[0].replace('v=',''));
                         var youtubeVideoElement = angular.element(youtubeVideo);
-                        var elemOfCurrentLine = getElementOfCurrentLine();
+                        var elemOfCurrentLine = getElementLineOfStartSelection();
                         angular.element(figure).append(youtubeVideoElement);
                         angular.element(elemOfCurrentLine).after(figure);
                         angular.element(figure).after(angular.element($scope.richEditorApi.defaultNode));
@@ -535,16 +520,33 @@ angular.module("richeditor",[])
                 }
             }
 
-            function getElementOfCurrentLine(){
-                function traverseUpDomToEditorRoot(elem){
-                    if(elem.parentNode == $element[0]){
-                        return elem;
-                    }
-                    else{
-                        return traverseUpDomToEditorRoot(elem.parentNode);
-                    }
+            function traverseUpDomToEditorRoot(elem){
+                if(elem.parentNode == $element[0]){
+                    return elem;
                 }
-                return traverseUpDomToEditorRoot($window.getSelection().anchorNode);
+                else{
+                    return traverseUpDomToEditorRoot(elem.parentNode);
+                }
+            }
+
+            function getElementLineOfStartSelection(){
+                var anchorNode = $window.getSelection().anchorNode;
+                if(isElementInsideEditor(anchorNode)){
+                    return traverseUpDomToEditorRoot(anchorNode);    
+                }
+                else{
+                    return null;
+                }
+            }
+
+            function getElementLineOfEndSelection(){
+                var focusNode = $window.getSelection().focusNode;
+                if(isElementInsideEditor(focusNode)){
+                    return traverseUpDomToEditorRoot(focusNode);    
+                }
+                else{
+                    return null;
+                }
             }
 
             function isElementInsideEditor(elem){
