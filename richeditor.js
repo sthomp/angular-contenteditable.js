@@ -422,6 +422,14 @@ angular.module("richeditor",[])
             // Called every time the content changes
             $element.on("input", function(e){
                 preventEmptyNode();
+
+                if($element.text().length==0){
+                    $element.addClass("empty");
+                }
+                else{
+                    $element.removeClass("empty");
+                }
+
                 $scope.$emit("richeditor:input",e);
             });
 
