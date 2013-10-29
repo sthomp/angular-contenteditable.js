@@ -86,23 +86,13 @@ angular.module("richeditor",[])
             element.addClass("st-single-line-field");
 
             if(element.text().length==0){
-                element.addClass("empty");
+                checkIfEmpty();
             }
             element.on("focus", function(e){
-                if(element.text().length==0){
-                    element.addClass("empty");
-                }
-                else{
-                    element.removeClass("empty");
-                }
+                checkIfEmpty();
             });
             element.on("input", function(e){
-                if(element.text().length==0){
-                    element.addClass("empty");
-                }
-                else{
-                    element.removeClass("empty");
-                }
+                checkIfEmpty();
             });
 
         	/* Check if we need to prevent input. ie: maxlength or singleline input */
@@ -127,21 +117,24 @@ angular.module("richeditor",[])
 	        }
 
 	        function checkIfEmpty(){
-	        	if(element.text()==""){
-	        		element.html("");
-	        	}
+	        	if(element.text().length==0){
+                    element.addClass("empty");
+                }
+                else{
+                    element.removeClass("empty");
+                }
 	        }
 
         	// Listen for changes to the model
         	ngModel.$render = function() {
         		element.text(ngModel.$viewValue || '');
-        		checkIfEmpty();
+                checkIfEmpty();
 	        };
 
 	        // Listen for changes to the html element
 	        element.on('blur keyup change', function(e) {
 	        	ngModel.$setViewValue(element.text());
-	        	checkIfEmpty();
+                checkIfEmpty();
 	        	safeApply();
 	        });
         }
@@ -203,6 +196,9 @@ angular.module("richeditor",[])
                 /*
                  *  API Methods
                  */
+                setHtml: function(html){
+                    $element.html(html);
+                },
                 toggleSelectionBold: function(){
                     document.execCommand("bold", null, false);
                 },
@@ -348,6 +344,9 @@ angular.module("richeditor",[])
                 },
                 getHtml: function(){
                     return $element.html();
+                },
+                getElementsWithClass: function(clazz){
+                    return $element.find('.' + clazz);
                 }
             };
 
