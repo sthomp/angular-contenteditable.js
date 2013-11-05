@@ -193,26 +193,34 @@ angular.module("richeditor",[])
                         }
                     }
                 },
+
                 /*
                  *  API Methods
                  */
+
+                /* Use this to load existing content */
                 setHtml: function(html){
                     $element.html(html);
                 },
                 toggleSelectionBold: function(){
+                    ensureNoChangesToAtomicElement()
                     document.execCommand("bold", null, false);
                 },
                 toggleSelectionItalic: function(){
+                    ensureNoChangesToAtomicElement()
                     document.execCommand("italic", null, false);
                 },
                 toggleSelectionUnderline: function(){
+                    ensureNoChangesToAtomicElement()
                     document.execCommand("underline", null, false);
                 },
                 setSelectionLink: function(url){
+                    ensureNoChangesToAtomicElement()
                     document.execCommand("CreateLink", null, url);
                 },
                 removeLink: function(){
                     // TODO: Need a better way to remove the link
+                    ensureNoChangesToAtomicElement()
                     document.execCommand("unlink", null, null);
                 },
                 toggleBlockH1: function(){
@@ -341,6 +349,7 @@ angular.module("richeditor",[])
                     var selection = $window.getSelection();
                     selection.removeAllRanges();
                     selection.addRange(range);
+                    // updateSelection($scope.richEditorApi.currentSelection.e);
                 },
                 getHtml: function(){
                     return $element.html();
@@ -357,7 +366,8 @@ angular.module("richeditor",[])
             // $element.append(angular.element($scope.richEditorApi.defaultNode));
 
             // Updating the current selection requires throttling to improve performance
-            var updateSelection = throttle(function(e){
+            // TODO: Put a debounce on this
+            var updateSelection = function(e){
                 $timeout(function(){
                     var selection = $window.getSelection();
                     $scope.richEditorApi.currentSelection.anchorOffset = selection.anchorOffset;
@@ -365,23 +375,22 @@ angular.module("richeditor",[])
                     $scope.richEditorApi.currentSelection.anchorNode = selection.anchorNode;
                     $scope.richEditorApi.currentSelection.focusNode = selection.focusNode;
                     $scope.richEditorApi.currentSelection.e = e;
-                })
-            }, 200);
+                });
+            };
             // React to selectoin changes
             $scope.$watchCollection('[richEditorApi.currentSelection.anchorOffset, richEditorApi.currentSelection.focusOffset, richEditorApi.currentSelection.anchorNode, richEditorApi.currentSelection.focusNode]', function() {
-                
-
                 clearCaptureRangeIfCursorIsOutside();
-                
-                // var selection = $window.getSelection();
-                // var isRangeSelection = $scope.richEditorApi.rangeHelper.isRangeSelection();
-                // if(isRangeSelection && isElementInsideEditor(selection.focusNode)){
-                //     var isMultiLineSelection = $scope.richEditorApi.rangeHelper.isMultiLineSelection();
-                //     $scope.$emit("richeditor:selection", isMultiLineSelection);
-                // }
             });
             // Listen to mouse and keyboard and update the selection so we can capture selection change events
-            $document.on("keydown keyup keypress mousemove mousedown mouseup mouseclick", function(e){
+            $document.on("keydown keyup keypress mousedown mouseup mouseclick input", function(e){
+                
+                if(e.type=="keydown"){
+                    console.log();
+                    if(!e.metaKey || [37,38,39,40].indexOf(e.keyCode) == -1 /* Check arrow keys */){
+                        ensureNoChangesToAtomicElement();
+                    }
+                }
+
                 updateSelection(e);
 
                 if(e.type == "mouseup" || e.type == "keyup"){
@@ -395,6 +404,37 @@ angular.module("richeditor",[])
                     }
                 }
             });
+
+            function ensureNoChangesToAtomicElement(){
+
+                var focusAtomicElement = isInsideAtomicElement($scope.richEditorApi.currentSelection.focusNode);
+                var anchorAtomicElement = isInsideAtomicElement($scope.richEditorApi.currentSelection.anchorNode);
+                if(focusAtomicElement==anchorAtomicElement){
+                    if(focusAtomicElement){
+                        // Caret is in a single position
+                        unwrapElement(focusAtomicElement);
+                    }
+                }
+                else{
+                    if(focusAtomicElement){
+                        // Range selection
+                        unwrapElement(focusAtomicElement);
+                    }
+                    if(anchorAtomicElement){
+                        // Range selection
+                        unwrapElement(anchorAtomicElement);
+                    }
+                }
+            }
+
+            function unwrapElement(elem){
+                var range = document.createRange();
+                var text = elem.textContent;
+                range.selectNode(elem);
+                $scope.richEditorApi.setCurrentSelection(range);
+                document.execCommand("delete");
+                document.execCommand("insertText",false, text);
+            }
 
             // Make sure <br> tags are off when pressing return
             document.execCommand('insertBrOnReturn',false, false);
@@ -564,20 +604,6 @@ angular.module("richeditor",[])
 
             /* Capture Text Input */
 
-            // function ensureOutsideAtomicElement(){
-            //     var selection = $window.getSelection();
-            //     var atomicElement = isInsideAtomicElement(selection.anchorNode);
-            //     if(atomicElement){
-            //         $scope.richEditorApi.rangeHelper.setCursorAfterNode(atomicElement);
-            //     }
-            //     else{
-            //         var atomicElement = isInsideAtomicElement(selection.focusNode);
-            //         if(atomicElement){
-            //             $scope.richEditorApi.rangeHelper.setCursorAfterNode(atomicElement);
-            //         }
-            //     }
-            // }
-
             function clearCaptureRangeIfCursorIsOutside(){
                 if($scope.richEditorApi.capture.isCapturing){
                     var selection = $window.getSelection();
@@ -600,11 +626,20 @@ angular.module("richeditor",[])
                 });
             }
 
-            // function isInsideAtomicElement(theElement){
-            //     return traverseUpDom(theElement, function(elem){
-            //         return angular.element(elem).attr("atomic-element");
-            //     });
-            // }
+            function isInsideAtomicElement(theElement){
+                if(!theElement.parentNode){
+                    return false;
+                }
+                else{
+                    if(theElement.parentNode.getAttribute("data-atomic-element")){
+                        return theElement.parentNode;
+                    }
+                    else{
+                        return null;
+                    }
+                }
+                
+            }
 
             $scope.richEditorApi.capture = {
                 elem: document.createElement("span"),
@@ -660,23 +695,26 @@ angular.module("richeditor",[])
                     });
                 },
                 /* Note: this style of replace won't work with <span> because the browser will let the user edit the content of the <span> */
-                replaceAtomicLink: function(text){
-                    var newnode = angular.element("<input class='atomic-element' type=button value='" + text + "'>");
-                    newnode.attr("atomic-element",true);
+                replaceAtomicLink: function(elem){
+                    elem.attr("data-atomic-element",true);
+                    elem.addClass("atomic-element")
+                    var str = angular.element('<div>').append(elem.clone()).html();
                     // Use timeout to trigger the $watch
                     $timeout(function(){
                         var elem = angular.element($scope.richEditorApi.capture.elem);
-                        elem.replaceWith(newnode);
-                        $scope.richEditorApi.rangeHelper.setCursorAfterNode(newnode[0]);
-                        $element.focus();
+                        var range = document.createRange();
+                        range.selectNode($scope.richEditorApi.capture.elem);
+                        $scope.richEditorApi.setCurrentSelection(range);
+                        document.execCommand("delete");
+                        document.execCommand("insertHTML",false, str + "&nbsp;");
                     });   
-                    return newnode;
                 }
             }
             // To figure out if we're currently capturing input we can check
             // if the capture element is currently on the screen by looking
             // if it has a parent element
             $scope.$watch('richEditorApi.capture.elem.parentNode', function() {
+                console.log("Parent node change");
                 if($scope.richEditorApi.capture.elem.parentNode==null){
                     $scope.richEditorApi.capture.isCapturing = false;
                 }
