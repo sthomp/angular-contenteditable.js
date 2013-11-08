@@ -385,8 +385,7 @@ angular.module("richeditor",[])
             $document.on("keydown keyup keypress mousedown mouseup mouseclick input", function(e){
                 
                 if(e.type=="keydown"){
-                    console.log();
-                    if(!e.metaKey || [37,38,39,40].indexOf(e.keyCode) == -1 /* Check arrow keys */){
+                    if(!e.metaKey && doesKeycodeChangeText(e.keyCode)){
                         ensureNoChangesToAtomicElement();
                     }
                 }
@@ -404,6 +403,14 @@ angular.module("richeditor",[])
                     }
                 }
             });
+            function doesKeycodeChangeText(c){
+                if([16,17,18,19,20,27,33,34,35,36,37,38,39,40,144,145].indexOf(c) != -1 || (c>=112 && c<=123 /* F Keys */)){
+                    return false;
+                }
+                else{
+                    return true;
+                }
+            }
 
             function ensureNoChangesToAtomicElement(){
 
@@ -477,6 +484,9 @@ angular.module("richeditor",[])
                 }
 
                 $scope.$emit("richeditor:input",e);
+            });
+            $element.on("change", function(e){
+                console.log("change");
             });
 
             $element.on("keypress", function(e){
@@ -677,8 +687,13 @@ angular.module("richeditor",[])
                     $timeout(function(){
                         if($scope.richEditorApi.capture.isCapturing){
                             var contents = angular.element($scope.richEditorApi.capture.elem).contents().last();
-                            contents.unwrap();
-                            $scope.richEditorApi.rangeHelper.setCursorAfterNode(contents[0]);
+                            if(contents.length > 0){
+                                contents.unwrap();
+                                $scope.richEditorApi.rangeHelper.setCursorAfterNode(contents[0]);
+                            }
+                            else{
+                                angular.element($scope.richEditorApi.capture.elem).remove();
+                            }
                         }
                     });
                 },
