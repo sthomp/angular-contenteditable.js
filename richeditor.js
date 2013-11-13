@@ -485,9 +485,6 @@ angular.module("richeditor",[])
 
                 $scope.$emit("richeditor:input",e);
             });
-            $element.on("change", function(e){
-                console.log("change");
-            });
 
             $element.on("keypress", function(e){
                 
@@ -729,7 +726,6 @@ angular.module("richeditor",[])
             // if the capture element is currently on the screen by looking
             // if it has a parent element
             $scope.$watch('richEditorApi.capture.elem.parentNode', function() {
-                console.log("Parent node change");
                 if($scope.richEditorApi.capture.elem.parentNode==null){
                     $scope.richEditorApi.capture.isCapturing = false;
                 }
