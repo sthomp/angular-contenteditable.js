@@ -157,42 +157,6 @@ angular.module("richeditor",[])
                     focusNode: null,
                     e: null
                 },
-                rangeHelper: {
-                    setCursorAfterNode: function(node){
-                        var range = document.createRange();
-                        range.setStartAfter(node);
-                        range.setEndAfter(node);
-                        range.collapse(false);
-                        var selection = window.getSelection();
-                        selection.removeAllRanges();
-                        selection.addRange(range);
-                    },
-                    isRangeSelection: function(){
-                        var selection = $window.getSelection();
-                        // Check if a range is selected or if its just a single cursor
-                        if(selection.anchorNode != selection.focusNode){
-                            return true;
-                        }
-                        else{
-                            if(selection.anchorOffset != selection.focusOffset){
-                                return true;
-                            }
-                            else{
-                                return false;
-                            }
-                        }
-                    },
-                    isMultiLineSelection: function(){
-                        var startElement = getElementLineOfStartSelection();
-                        var endElement = getElementLineOfEndSelection();
-                        if(startElement == null || endElement == null){
-                            return true;
-                        }
-                        else{
-                            return startElement != endElement;
-                        }
-                    }
-                },
 
                 /*
                  *  API Methods
@@ -216,6 +180,12 @@ angular.module("richeditor",[])
                 },
                 setSelectionLink: function(url){
                     ensureNoChangesToAtomicElement()
+                    // Ensure links are not relative links
+                    var httpRegex = /^(http:\/\/|https:\/\/)/i; // Check if starts with http or https
+                    if(!httpRegex.test(url)){
+                        url = "http://" + url
+                    }
+
                     document.execCommand("CreateLink", null, url);
                 },
                 removeLink: function(){
@@ -341,9 +311,7 @@ angular.module("richeditor",[])
                     selection.addRange(range);
                 },
                 getCurrentSelection: function(){
-                    var selection = $window.getSelection();
-                    var range = selection.getRangeAt(0).cloneRange();
-                    return range;
+                    return rangeHelper.getCurrentSelection().cloneRange();
                 },
                 setCurrentSelection: function(range){
                     var selection = $window.getSelection();
@@ -358,6 +326,53 @@ angular.module("richeditor",[])
                     return $element.find('.' + clazz);
                 }
             };
+
+            var rangeHelper = {
+                getCurrentSelection: function(){
+                    var selection = $window.getSelection();
+                    var range = selection.getRangeAt(0);
+                    return range;
+                },
+                setCursorAfterNode: function(node){
+                    var range = document.createRange();
+                    range.setStartAfter(node);
+                    range.setEndAfter(node);
+                    range.collapse(false);
+                    var selection = window.getSelection();
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                },
+                isRangeSelection: function(){
+                    var selection = $window.getSelection();
+                    // Check if a range is selected or if its just a single cursor
+                    if(selection.anchorNode != selection.focusNode){
+                        return true;
+                    }
+                    else{
+                        if(selection.anchorOffset != selection.focusOffset){
+                            return true;
+                        }
+                        else{
+                            return false;
+                        }
+                    }
+                },
+                isMultiLineSelection: function(){
+                    var startElement = getElementLineOfStartSelection();
+                    var endElement = getElementLineOfEndSelection();
+                    if(startElement == null || endElement == null){
+                        return true;
+                    }
+                    else{
+                        return startElement != endElement;
+                    }
+                },
+                htmlNodeToString: function(node){
+                    var tmp = document.createElement("div");
+                    tmp.appendChild(node);
+                    return tmp.innerHTML;
+                }
+            }
 
             $element.on('blur keyup change input', function(e) {
                 $scope.$emit("richeditor:contentchange");
@@ -394,9 +409,9 @@ angular.module("richeditor",[])
 
                 if(e.type == "mouseup" || e.type == "keyup"){
                     var selection = $window.getSelection();
-                    var isRangeSelection = $scope.richEditorApi.rangeHelper.isRangeSelection();
+                    var isRangeSelection = rangeHelper.isRangeSelection();
                     if(isRangeSelection && isElementInsideEditor(selection.focusNode)){
-                        var isMultiLineSelection = $scope.richEditorApi.rangeHelper.isMultiLineSelection();
+                        var isMultiLineSelection = rangeHelper.isMultiLineSelection();
                         if(!isMultiLineSelection){
                             $scope.$emit("richeditor:textselection", isMultiLineSelection);
                         }
@@ -413,9 +428,9 @@ angular.module("richeditor",[])
             }
 
             function ensureNoChangesToAtomicElement(){
-
-                var focusAtomicElement = isInsideAtomicElement($scope.richEditorApi.currentSelection.focusNode);
-                var anchorAtomicElement = isInsideAtomicElement($scope.richEditorApi.currentSelection.anchorNode);
+                var selection = $window.getSelection();
+                var focusAtomicElement = isInsideAtomicElement(selection.focusNode);
+                var anchorAtomicElement = isInsideAtomicElement(selection.anchorNode);
                 if(focusAtomicElement==anchorAtomicElement){
                     if(focusAtomicElement){
                         // Caret is in a single position
@@ -686,7 +701,7 @@ angular.module("richeditor",[])
                             var contents = angular.element($scope.richEditorApi.capture.elem).contents().last();
                             if(contents.length > 0){
                                 contents.unwrap();
-                                $scope.richEditorApi.rangeHelper.setCursorAfterNode(contents[0]);
+                                rangeHelper.setCursorAfterNode(contents[0]);
                             }
                             else{
                                 angular.element($scope.richEditorApi.capture.elem).remove();
@@ -702,7 +717,7 @@ angular.module("richeditor",[])
                     $timeout(function(){
                         var elem = angular.element($scope.richEditorApi.capture.elem);
                         elem.replaceWith(newnode);
-                        $scope.richEditorApi.rangeHelper.setCursorAfterNode(newnode[0]);
+                        rangeHelper.setCursorAfterNode(newnode[0]);
                         $element.focus();
                     });
                 },
