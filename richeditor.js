@@ -527,7 +527,7 @@ angular.module("richeditor",[])
 
             $element.on("paste", function(e){
                 e.preventDefault();
-                var imageUrlRegex = /^https?:\/\/(?:[a-z\-]+\.)+[a-z]{2,6}(?:\/[^\/#?]+)+\.(?:jpe?g|gif|png)$/i;
+                var imageUrlRegex = /^https?:\/\/(?:[a-z\-\d]+\.)+[a-z]{2,6}(?:\/[^\/#?]+)+\.(?:jpe?g|gif|png)$/i;
                 var youtubeUrl = /youtube\.com\/watch/i;
                 var html = '';
                 var pastedText = e.originalEvent.clipboardData.getData('text/plain');
