@@ -649,17 +649,23 @@ angular.module("richeditor",[])
             }
 
             function isInsideAtomicElement(theElement){
-                if(!theElement.parentNode){
+                if(angular.isUndefined(theElement) || theElement==null){
                     return false;
                 }
                 else{
-                    if(theElement.parentNode.getAttribute("data-atomic-element")){
-                        return theElement.parentNode;
+                    if(!theElement.parentNode){
+                        return false;
                     }
                     else{
-                        return null;
+                        if(theElement.parentNode.getAttribute("data-atomic-element")){
+                            return theElement.parentNode;
+                        }
+                        else{
+                            return null;
+                        }
                     }
                 }
+
                 
             }
 
