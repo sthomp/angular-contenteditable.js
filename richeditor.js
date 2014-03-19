@@ -140,12 +140,27 @@ angular.module("richeditor",[])
         }
     }
 }])
-.directive("stRichEditor", ['$compile', 'debounce', 'throttle',function($compile, debounce, throttle){
+.constant('stRichEditorConstants',{
+    events: {
+        contentchange: "richeditor:contentchange",
+        textselection: "richeditor:textselection",
+        mouseup: "richeditor:mouseup",
+        keydown: "richeditor:keydown",
+        input: "richeditor:input",
+        keyup: "richeditor:keyup",
+        keypress: "richeditor:keypress",
+        focus: "richeditor:focus",
+        unfocus: "richeditor:unfocus"
+    } 
+})
+.directive("stRichEditor", ['$compile', 'debounce', 'throttle', function($compile, debounce, throttle){
 	return {
         restrict: "E",
         template: "<div class='st-rich-editor' contenteditable='true'></div>",
         replace: true,
-        controller: ['$scope', '$element', '$timeout', '$window', '$document',function($scope, $element, $timeout, $window, $document){
+        controller: ['$scope', '$element', '$timeout', '$window', '$document', 'stRichEditorConstants', function($scope, $element, $timeout, $window, $document, stRichEditorConstants){
+
+            var events = stRichEditorConstants.events;
 
             $scope.richEditorApi = {
                 defaultNode: '<p style="min-height:1em;"></p>',
@@ -157,6 +172,7 @@ angular.module("richeditor",[])
                     focusNode: null,
                     e: null
                 },
+                events: events,
 
                 /*
                  *  API Methods
@@ -375,7 +391,7 @@ angular.module("richeditor",[])
             }
 
             $element.on('blur keyup change input', function(e) {
-                $scope.$emit("richeditor:contentchange");
+                $scope.$emit(events.contentchange);
             });
 
             // $element.append(angular.element($scope.richEditorApi.defaultNode));
@@ -392,8 +408,18 @@ angular.module("richeditor",[])
                     $scope.richEditorApi.currentSelection.e = e;
                 });
             };
+            $scope.$watch('richEditorApi.currentSelection.focusNode', function(){
+                // Send an event whenever the cursor enters or leaves the editor
+                if(isElementInsideEditor($scope.richEditorApi.currentSelection.focusNode)){
+                    $scope.$emit(events.focus);
+                }
+                else{
+                    $scope.$emit(events.unfocus);
+                }
+            });
             // React to selectoin changes
             $scope.$watchCollection('[richEditorApi.currentSelection.anchorOffset, richEditorApi.currentSelection.focusOffset, richEditorApi.currentSelection.anchorNode, richEditorApi.currentSelection.focusNode]', function() {
+                // Stop capturing text input if the cursor leaves the editor
                 clearCaptureRangeIfCursorIsOutside();
             });
             // Listen to mouse and keyboard and update the selection so we can capture selection change events
@@ -413,7 +439,7 @@ angular.module("richeditor",[])
                     if(isRangeSelection && isElementInsideEditor(selection.focusNode)){
                         var isMultiLineSelection = rangeHelper.isMultiLineSelection();
                         if(!isMultiLineSelection){
-                            $scope.$emit("richeditor:textselection", isMultiLineSelection);
+                            $scope.$emit(events.textselection, isMultiLineSelection);
                         }
                     }
                 }
@@ -470,7 +496,7 @@ angular.module("richeditor",[])
             }
 
             $element.on("mouseup", function(e){
-                $scope.$emit("richeditor:mouseup");
+                $scope.$emit(events.mouseup);
             });
 
             $element.on("keydown", function(e){
@@ -486,7 +512,7 @@ angular.module("richeditor",[])
                     $scope.richEditorApi.enterCount = 0;
                 }
 
-                $scope.$emit("richeditor:keydown",e);
+                $scope.$emit(events.keydown,e);
             });
 
             // Called every time the content changes
@@ -498,7 +524,7 @@ angular.module("richeditor",[])
                     $element.removeClass("empty");
                 }
 
-                $scope.$emit("richeditor:input",e);
+                $scope.$emit(events.input,e);
             });
 
             $element.on("keypress", function(e){
@@ -513,11 +539,11 @@ angular.module("richeditor",[])
                     
                 }
                 
-                $scope.$emit("richeditor:keypress",e);
+                $scope.$emit(events.keypress,e);
             });
 
             $element.on("keyup", function(e){
-                $scope.$emit("richeditor:keyup",e);
+                $scope.$emit(events.keyup,e);
             });
 
             // doesnt work in firefox
