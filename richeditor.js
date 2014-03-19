@@ -278,8 +278,11 @@ angular.module("richeditor",[])
                     var figure = document.createElement("FIGURE");
                     figure.setAttribute('contenteditable',false);
                     var img = document.createElement("IMG");
+                    var figcaption = document.createElement("FIGCAPTION");
                     img.setAttribute('src', url)
                     figure.appendChild(img);
+                    figure.appendChild(figcaption);
+                    figcaption.setAttribute('contenteditable', true);
                     // insert a paragraph node before incase we need to edit above the image
                     angular.element(elemOfCurrentLine).after(figure);
                     angular.element(figure).after(angular.element($scope.richEditorApi.defaultNode));
@@ -558,10 +561,31 @@ angular.module("richeditor",[])
                 var html = '';
                 var pastedText = e.originalEvent.clipboardData.getData('text/plain');
 
-                if(imageUrlRegex.test(pastedText)){
-                    $scope.richEditorApi.insertImage(pastedText);
+                // http://stackoverflow.com/questions/9714525/javascript-image-url-verify
+                function testImage(url, callback) {
+                    timeout = 3000;
+                    var timedOut = false, timer;
+                    var img = new Image();
+                    img.onerror = img.onabort = function() {
+                        if (!timedOut) {
+                            clearTimeout(timer);
+                            callback(url, false);
+                        }
+                    };
+                    img.onload = function() {
+                        if (!timedOut) {
+                            clearTimeout(timer);
+                            callback(url, true);
+                        }
+                    };
+                    img.src = url;
+                    timer = setTimeout(function() {
+                        timedOut = true;
+                        callback(url, false);
+                    }, timeout); 
                 }
-                else if(youtubeUrl.test(pastedText)){
+
+                if(youtubeUrl.test(pastedText)){
                     var vidWidth = 425;
                     var vidHeight = 344;
 
@@ -587,8 +611,16 @@ angular.module("richeditor",[])
                     }
                 }
                 else{
-                    document.execCommand('insertText', false, pastedText);
-                    preventEmptyNode();
+                    testImage(pastedText, function(isImg){
+                        if(isImg){
+                            $scope.richEditorApi.insertImage(pastedText);
+                        }
+                        else{
+                            document.execCommand('insertText', false, pastedText);
+                            preventEmptyNode();
+                        }
+                    });
+                    
                 }
                 
             });
