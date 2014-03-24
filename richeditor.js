@@ -151,7 +151,15 @@ angular.module("richeditor",[])
         keypress: "richeditor:keypress",
         focus: "richeditor:focus",
         unfocus: "richeditor:unfocus"
-    } 
+    },
+    // There are different kinds of nodeTypes:
+    // - rich: You can format H1, H2, etc
+    // - basic: You can only type text and set text to bold, italic, href.
+    //    No inserting images, H1, H2
+    nodeTypes: {
+      rich: 'richeditor:nodetype:rich',
+      basic: 'richeditor:nodetype:basic'
+    }
 })
 .directive("stRichEditor", ['$compile', 'debounce', 'throttle', function($compile, debounce, throttle){
 	return {
@@ -283,6 +291,7 @@ angular.module("richeditor",[])
                     figure.appendChild(img);
                     figure.appendChild(figcaption);
                     figcaption.setAttribute('contenteditable', true);
+                    figcaption.textContent = 'test';
                     // insert a paragraph node before incase we need to edit above the image
                     angular.element(elemOfCurrentLine).after(figure);
                     angular.element(figure).after(angular.element($scope.richEditorApi.defaultNode));
@@ -303,7 +312,12 @@ angular.module("richeditor",[])
                 isLink: function(){
                     var currentElement = getSelectionBoundaryElement(true);
                     var isLink = traverseUpDom(currentElement, function(elem){
-                        return elem.tagName.toLowerCase() == "a";
+                      if(elem.tagName.toLowerCase() == "a"){
+                        return elem;
+                      }
+                      else{
+                        return false;
+                      }
                     });
                     if(isLink){
                         return true;
@@ -315,7 +329,12 @@ angular.module("richeditor",[])
                 isLinkWithClass: function(clazz){
                     var currentElement = getSelectionBoundaryElement(true);
                     var isLinkWithClass = traverseUpDom(currentElement, function(elem){
-                        return (elem.tagName.toLowerCase() == "a") && (elem.className.split(" ").indexOf(clazz) != -1);
+                      if((elem.tagName.toLowerCase() == "a") && (elem.className.split(" ").indexOf(clazz) != -1)){
+                        return elem;
+                      }
+                      else{
+                        return false;
+                      }
                     });
                     return isLinkWithClass;
                 },
@@ -412,13 +431,19 @@ angular.module("richeditor",[])
                 });
             };
             $scope.$watch('richEditorApi.currentSelection.focusNode', function(){
-                // Send an event whenever the cursor enters or leaves the editor
-                if(isElementInsideEditor($scope.richEditorApi.currentSelection.focusNode)){
-                    $scope.$emit(events.focus);
-                }
-                else{
-                    $scope.$emit(events.unfocus);
-                }
+              var containerNodeType = getParentContainerNodeType($scope.richEditorApi.currentSelection.focusNode);
+              if(containerNodeType == stRichEditorConstants.nodeTypes.rich){
+                preventEmptyNode();
+              }
+
+              // Send an event whenever the cursor enters or leaves the editor
+              // This is so consumers can know if the editor is focused or not
+              if(isElementInsideEditor($scope.richEditorApi.currentSelection.focusNode)){
+                $scope.$emit(events.focus);
+              }
+              else{
+                $scope.$emit(events.unfocus);
+              }
             });
             // React to selectoin changes
             $scope.$watchCollection('[richEditorApi.currentSelection.anchorOffset, richEditorApi.currentSelection.focusOffset, richEditorApi.currentSelection.anchorNode, richEditorApi.currentSelection.focusNode]', function() {
@@ -435,16 +460,21 @@ angular.module("richeditor",[])
                 }
 
                 updateSelection(e);
-
+                
+                // Check if the user did a multiline selection
                 if(e.type == "mouseup" || e.type == "keyup"){
-                    var selection = $window.getSelection();
-                    var isRangeSelection = rangeHelper.isRangeSelection();
-                    if(isRangeSelection && isElementInsideEditor(selection.focusNode)){
-                        var isMultiLineSelection = rangeHelper.isMultiLineSelection();
-                        if(!isMultiLineSelection){
-                            $scope.$emit(events.textselection, isMultiLineSelection);
-                        }
+                  var selection = $window.getSelection();
+                  var isRangeSelection = rangeHelper.isRangeSelection();
+                  if(isRangeSelection && isElementInsideEditor(selection.focusNode)){
+                    var isMultiLineSelection = rangeHelper.isMultiLineSelection();
+                    if(!isMultiLineSelection){
+                      var containerNodeType = getParentContainerNodeType($scope.richEditorApi.currentSelection.focusNode);
+                      $scope.$emit(events.textselection, {
+                        multi: isMultiLineSelection,
+                        nodeType: containerNodeType
+                      });
                     }
+                  }
                 }
             });
             function doesKeycodeChangeText(c){
@@ -490,6 +520,36 @@ angular.module("richeditor",[])
             // Make sure <br> tags are off when pressing return
             document.execCommand('insertBrOnReturn',false, false);
 
+            // There are some special types we need to keep an eye out for
+            // See 'nodeTypes' above
+            function getParentContainerNodeType(testElem){
+              var basicTypes = ['figcaption', 'li'];
+              
+              var result =  traverseUpDom(testElem, function(elem){
+                if(elem.tagName){
+                  if(basicTypes.indexOf(elem.tagName.toLowerCase()) != -1){
+                    return stRichEditorConstants.nodeTypes.basic;
+                  }
+                  else if(elem == $element[0]){
+                    return stRichEditorConstants.nodeTypes.rich;
+                  }
+                  else{
+                    return false;
+                  }
+                }
+                else{
+                  return false; 
+                }
+              });
+              
+              if(result){
+                return result;
+              }
+              else{
+                return null;
+              }
+            }
+
             function preventEmptyNode(){
                 var blockType = document.queryCommandValue("formatBlock");
                 if(blockType=='' || blockType=='div'){
@@ -532,7 +592,6 @@ angular.module("richeditor",[])
 
             $element.on("keypress", function(e){
                 
-                preventEmptyNode();
                 if(e.keyCode == 13 /* return */){
                     
                     // Clear formatting when the user hits enter
@@ -569,19 +628,19 @@ angular.module("richeditor",[])
                     img.onerror = img.onabort = function() {
                         if (!timedOut) {
                             clearTimeout(timer);
-                            callback(url, false);
+                            callback(false);
                         }
                     };
                     img.onload = function() {
                         if (!timedOut) {
                             clearTimeout(timer);
-                            callback(url, true);
+                            callback(true);
                         }
                     };
                     img.src = url;
                     timer = setTimeout(function() {
                         timedOut = true;
-                        callback(url, false);
+                        callback(false);
                     }, timeout); 
                 }
 
@@ -629,21 +688,25 @@ angular.module("richeditor",[])
             // Traverse up from the current node
             // Return true if the given condition is met
             function traverseUpDom(elem, fn){
-                if(!elem || !fn){
-                    return false;
-                }
-                else if(fn(elem)){
-                    return elem;
+              if(!elem || !fn){
+                return false;
+              }
+              else{
+                var result = fn(elem);
+                if(fn(elem)){
+                  return result;
                 }
                 else if(elem.nodeName.toLowerCase()=="body"){
-                    return false;
+                  return false;
                 }
                 else if(elem == $element[0]){
-                    return false;
+                  return false;
                 }
                 else{
-                    return traverseUpDom(elem.parentNode, fn);
+                  return traverseUpDom(elem.parentNode, fn);
                 }
+
+              }
             }
 
             function traverseUpDomToEditorRoot(elem){
@@ -676,10 +739,15 @@ angular.module("richeditor",[])
             }
 
             function isElementInsideEditor(elem){
-                var result =  traverseUpDom(elem, function(elem){
-                    return elem == $element[0];
-                });
-                return result;
+              var result =  traverseUpDom(elem, function(elem){
+                if(elem == $element[0]){
+                  return elem;
+                }
+                else{
+                  return false;
+                }
+              });
+              return result;
             }
 
             /* Capture Text Input */
@@ -701,9 +769,14 @@ angular.module("richeditor",[])
             }
 
             function isInsideCaptureRange(theElement){
-                return traverseUpDom(theElement, function(elem){
-                    return angular.element(elem).hasClass("capture-range");
-                });
+              return traverseUpDom(theElement, function(elem){
+                if(angular.element(elem).hasClass("capture-range")){
+                  return elem;
+                }
+                else{
+                  return false;
+                }
+              });
             }
 
             function isInsideAtomicElement(theElement){
