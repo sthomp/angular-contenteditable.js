@@ -5,6 +5,11 @@
 	color:#888;
 }
 
+.st-rich-editor figure figcaption:not(:focus):empty:after{
+  content: '(Optional) Enter a caption';
+	color:#888;
+}
+
 .st-single-line-field.empty:before{
 	content: attr(data-placeholder);
 	color:#888;

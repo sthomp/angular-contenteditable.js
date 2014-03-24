@@ -291,7 +291,6 @@ angular.module("richeditor",[])
                     figure.appendChild(img);
                     figure.appendChild(figcaption);
                     figcaption.setAttribute('contenteditable', true);
-                    figcaption.textContent = 'test';
                     // insert a paragraph node before incase we need to edit above the image
                     angular.element(elemOfCurrentLine).after(figure);
                     angular.element(figure).after(angular.element($scope.richEditorApi.defaultNode));
@@ -431,8 +430,9 @@ angular.module("richeditor",[])
                 });
             };
             $scope.$watch('richEditorApi.currentSelection.focusNode', function(){
-              var containerNodeType = getParentContainerNodeType($scope.richEditorApi.currentSelection.focusNode);
-              if(containerNodeType == stRichEditorConstants.nodeTypes.rich){
+              var focusContainerNodeType = getParentContainerNodeType($scope.richEditorApi.currentSelection.focusNode);
+              var anchorContainerNodeType = getParentContainerNodeType($scope.richEditorApi.currentSelection.anchorNode);
+              if(focusContainerNodeType == stRichEditorConstants.nodeTypes.rich && anchorContainerNodeType == stRichEditorConstants.nodeTypes.rich){
                 preventEmptyNode();
               }
 
