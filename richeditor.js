@@ -430,11 +430,7 @@ angular.module("richeditor",[])
                 });
             };
             $scope.$watch('richEditorApi.currentSelection.focusNode', function(){
-              var focusContainerNodeType = getParentContainerNodeType($scope.richEditorApi.currentSelection.focusNode);
-              var anchorContainerNodeType = getParentContainerNodeType($scope.richEditorApi.currentSelection.anchorNode);
-              if(focusContainerNodeType == stRichEditorConstants.nodeTypes.rich && anchorContainerNodeType == stRichEditorConstants.nodeTypes.rich){
-                preventEmptyNode();
-              }
+              preventEmptyNode();
 
               // Send an event whenever the cursor enters or leaves the editor
               // This is so consumers can know if the editor is focused or not
@@ -551,11 +547,16 @@ angular.module("richeditor",[])
             }
 
             function preventEmptyNode(){
+              // Only preventEmpty() if we are operating on a rich content area
+              var focusContainerNodeType = getParentContainerNodeType($scope.richEditorApi.currentSelection.focusNode);
+              var anchorContainerNodeType = getParentContainerNodeType($scope.richEditorApi.currentSelection.anchorNode);
+              if(focusContainerNodeType == stRichEditorConstants.nodeTypes.rich && anchorContainerNodeType == stRichEditorConstants.nodeTypes.rich){
                 var blockType = document.queryCommandValue("formatBlock");
                 if(blockType=='' || blockType=='div'){
-                    document.execCommand('formatblock', false, '<p>');
-                    $element.focus();   // for some reason Firefox loses focus after formatBlock
+                  document.execCommand('formatblock', false, '<p>');
+                  $element.focus();   // for some reason Firefox loses focus after formatBlock
                 }
+              }
             }
 
             $element.on("mouseup", function(e){
