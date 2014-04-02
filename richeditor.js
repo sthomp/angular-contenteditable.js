@@ -438,25 +438,6 @@ angular.module("richeditor",[])
                     var tmp = document.createElement("div");
                     tmp.appendChild(node);
                     return tmp.innerHTML;
-                },
-                insertNodeInNewLine: function(referenceNode, newNode) {
-                  // TODO: Implement this using insertHTML()
-                  var str = domNodeToString(newNode);
-
-
-                  var range = document.createRange();
-                  range.setStartAfter(referenceNode);
-                  range.setEndAfter(referenceNode);
-                  range.collapse(true);
-                  $scope.richEditorApi.setCurrentSelection(range);
-
-                  // document.execCommand("insertHTML",false, str);
-                  document.execCommand("insertParagraph", false);
-
-                  range.selectNodeContents(referenceNode.nextSibling);
-                  $scope.richEditorApi.setCurrentSelection(range);
-
-                  document.execCommand("insertHTML", false, str);
                 }
             }
 
@@ -551,6 +532,10 @@ angular.module("richeditor",[])
                           if(nextSibling && isNonContentEditable(nextSibling)){
                             // Dont allow the user to forwardDelete into contenteditable
                             e.preventDefault();
+                            var range = document.createRange();
+                            range.selectNode(nextSibling);
+                            $scope.richEditorApi.setCurrentSelection(range);
+                            document.execCommand('delete',false);
                           }
                         }
                         else if(e.keyCode == keycode.backspace && selection.focusOffset==0){
@@ -558,6 +543,10 @@ angular.module("richeditor",[])
                           if(previousSibling && isNonContentEditable(previousSibling)){
                             // Dont allow the user to backspace into contenteditable
                             e.preventDefault(); 
+                            var range = document.createRange();
+                            range.selectNode(previousSibling);
+                            $scope.richEditorApi.setCurrentSelection(range);
+                            document.execCommand('delete',false);
                           }
                         }
                       }
