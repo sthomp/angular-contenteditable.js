@@ -364,6 +364,36 @@ angular.module("richeditor",[])
                 }
             };
 
+
+            function domNodeToString(node){
+              var tmp = document.createElement("div");
+              tmp.appendChild(node);
+              return tmp.innerHTML;
+            }
+
+            function createNewLine(){
+
+              var currentLineElem = getElementLineOfStartSelection();
+
+              var range = document.createRange();
+              range.setStartAfter(currentLineElem);
+              range.setEndAfter(currentLineElem);
+              range.collapse(false);
+              $scope.richEditorApi.setCurrentSelection(range);
+
+              try{
+                  // firefox throws an error here: NS_ERROR_FAILURE
+                document.execCommand("insertParagraph", false);
+              }
+              finally{
+                // move the cursor into the newly created line
+                range.setStartAfter(currentLineElem);
+                range.setEndAfter(currentLineElem);
+                range.collapse(false);
+                $scope.richEditorApi.setCurrentSelection(range);
+              }
+            }
+
             var rangeHelper = {
                 getCurrentSelection: function(){
                     var selection = $window.getSelection();
@@ -408,6 +438,25 @@ angular.module("richeditor",[])
                     var tmp = document.createElement("div");
                     tmp.appendChild(node);
                     return tmp.innerHTML;
+                },
+                insertNodeInNewLine: function(referenceNode, newNode) {
+                  // TODO: Implement this using insertHTML()
+                  var str = domNodeToString(newNode);
+
+
+                  var range = document.createRange();
+                  range.setStartAfter(referenceNode);
+                  range.setEndAfter(referenceNode);
+                  range.collapse(true);
+                  $scope.richEditorApi.setCurrentSelection(range);
+
+                  // document.execCommand("insertHTML",false, str);
+                  document.execCommand("insertParagraph", false);
+
+                  range.selectNodeContents(referenceNode.nextSibling);
+                  $scope.richEditorApi.setCurrentSelection(range);
+
+                  document.execCommand("insertHTML", false, str);
                 }
             }
 
@@ -450,9 +499,80 @@ angular.module("richeditor",[])
             $document.on("keydown keyup keypress mousedown mouseup mouseclick input", function(e){
                 
                 if(e.type=="keydown"){
-                    if(!e.metaKey && doesKeycodeChangeText(e.keyCode)){
-                        ensureNoChangesToAtomicElement();
+
+                  var keycode = {
+                    backspace: 8,
+                    del: 46,
+                    enter: 13
+                  }
+
+                  // for figcaption we want to stop backspace/delete when the figcaption is empty
+                  // Also, pressing enter should leave the figcaption
+                  function preventDefaultForFigcaption(){
+                    if(e.keyCode == keycode.backspace || e.keyCode == keycode.del || e.keyCode == keycode.enter){
+                      var isRangeSelection = rangeHelper.isRangeSelection();
+                      if (!isRangeSelection) {
+                        var selection = $window.getSelection();
+                        
+                        var elem = isInsideElementTypeOrRichEditor(['figcaption'], selection.focusNode);
+                        if(elem && elem.tagName.toLowerCase()=='figcaption'){
+                          if(e.keyCode == keycode.backspace && selection.focusOffset==0){
+                            // prevent deleting if backspacing to the beginning of the figcaption
+                            e.preventDefault();
+                          }
+                          else if(e.keyCode == keycode.del && selection.focusOffset == elem.textContent.length){
+                            // prevent forwardDelete if deleting past the end of the figcaption
+                            e.preventDefault();
+                          }
+                          else if(e.keyCode == keycode.enter){
+                            createNewLine();
+                            e.preventDefault();
+                          }
+                        }
+                      } 
                     }
+                  }
+
+
+                  function preventDeletingNonContenteditable(){
+
+                    function isNonContentEditable(node){
+                      return node.hasAttribute('contenteditable') && node.getAttribute('contenteditable')=="false";
+                    }
+
+                    if(e.keyCode == keycode.backspace || e.keyCode == keycode.del){
+                      var isRangeSelection = rangeHelper.isRangeSelection();
+                      if (!isRangeSelection) {
+                        var selection = $window.getSelection();
+                        var lineElem = getElementLineOfStartSelection();
+                        
+                        if(e.keyCode == keycode.del && selection.focusOffset==lineElem.textContent.length){
+                          var nextSibling = lineElem.nextSibling;
+                          if(nextSibling && isNonContentEditable(nextSibling)){
+                            // Dont allow the user to forwardDelete into contenteditable
+                            e.preventDefault();
+                          }
+                        }
+                        else if(e.keyCode == keycode.backspace && selection.focusOffset==0){
+                          var previousSibling = lineElem.previousSibling;
+                          if(previousSibling && isNonContentEditable(previousSibling)){
+                            // Dont allow the user to backspace into contenteditable
+                            e.preventDefault(); 
+                          }
+                        }
+                      }
+                    }
+                  }
+
+                  preventDefaultForFigcaption();
+                  preventDeletingNonContenteditable();
+
+                  if(!e.metaKey && doesKeycodeChangeText(e.keyCode)){
+                      ensureNoChangesToAtomicElement();
+                  }
+
+
+                  $scope.$emit(events.keydown,e);
                 }
 
                 updateSelection(e);
@@ -516,30 +636,45 @@ angular.module("richeditor",[])
             // Make sure <br> tags are off when pressing return
             document.execCommand('insertBrOnReturn',false, false);
 
-            // There are some special types we need to keep an eye out for
-            // See 'nodeTypes' above
-            function getParentContainerNodeType(testElem){
-              var basicTypes = ['figcaption', 'li'];
-              
-              var result =  traverseUpDom(testElem, function(elem){
+            // Given an array of tagNames, this will traverse up the DOM
+            // If a matching tagName is found then return the matching element.
+            // Additionally, if we reach the rich-editor then return it.
+            // Otherwise returns false.
+            function isInsideElementTypeOrRichEditor(arrayOfTypes, testElem){
+              var result = traverseUpDom(testElem, function(elem){
                 if(elem.tagName){
-                  if(basicTypes.indexOf(elem.tagName.toLowerCase()) != -1){
-                    return stRichEditorConstants.nodeTypes.basic;
-                  }
+                  if(arrayOfTypes.indexOf(elem.tagName.toLowerCase()) != -1){
+                    return elem;
+                  } 
                   else if(elem == $element[0]){
-                    return stRichEditorConstants.nodeTypes.rich;
+                    return elem;
                   }
                   else{
                     return false;
                   }
                 }
                 else{
-                  return false; 
+                  // This is a text node and has no tagName
+                  return false;
                 }
               });
+
+              return result;
+            }
+
+            // There are some special types we need to keep an eye out for
+            // See 'nodeTypes' above
+            function getParentContainerNodeType(testElem){
+              var basicTypes = ['figcaption', 'li'];
               
+              var result = isInsideElementTypeOrRichEditor(basicTypes, testElem);
               if(result){
-                return result;
+                if(basicTypes.indexOf(result.tagName.toLowerCase()) != -1){
+                  return stRichEditorConstants.nodeTypes.basic;
+                }
+                else{
+                  return stRichEditorConstants.nodeTypes.rich;
+                }
               }
               else{
                 return null;
@@ -547,12 +682,14 @@ angular.module("richeditor",[])
             }
 
             function preventEmptyNode(){
-              // Only preventEmpty() if we are operating on a rich content area
-              var focusContainerNodeType = getParentContainerNodeType($scope.richEditorApi.currentSelection.focusNode);
-              var anchorContainerNodeType = getParentContainerNodeType($scope.richEditorApi.currentSelection.anchorNode);
-              if(focusContainerNodeType == stRichEditorConstants.nodeTypes.rich && anchorContainerNodeType == stRichEditorConstants.nodeTypes.rich){
-                var blockType = document.queryCommandValue("formatBlock");
-                if(blockType=='' || blockType=='div'){
+              // Only preventEmpty() if there is not currently a range selection
+              var isRangeSelection = rangeHelper.isRangeSelection();
+              var blockType = document.queryCommandValue("formatBlock");
+              if(!isRangeSelection && (blockType=='' || blockType=='div')){
+                var focusContainerNodeType = getParentContainerNodeType($scope.richEditorApi.currentSelection.focusNode);
+                var anchorContainerNodeType = getParentContainerNodeType($scope.richEditorApi.currentSelection.anchorNode);
+                // Only preventEmpty() if we are operating on a rich content area
+                if(focusContainerNodeType == stRichEditorConstants.nodeTypes.rich && anchorContainerNodeType == stRichEditorConstants.nodeTypes.rich){
                   document.execCommand('formatblock', false, '<p>');
                   $element.focus();   // for some reason Firefox loses focus after formatBlock
                 }
@@ -563,21 +700,6 @@ angular.module("richeditor",[])
                 $scope.$emit(events.mouseup);
             });
 
-            $element.on("keydown", function(e){
-                /* Some code test mess around with double enter */
-                if(e.which == 13 /* enter/return */){
-                    $scope.richEditorApi.enterCount += 1;
-                    if($scope.richEditorApi.enterCount == 2){
-                        // document.execCommand("insertHorizontalRule");
-                        $scope.richEditorApi.enterCount = 0;
-                    }
-                }
-                else{
-                    $scope.richEditorApi.enterCount = 0;
-                }
-
-                $scope.$emit(events.keydown,e);
-            });
 
             // Called every time the content changes
             $element.on("input", function(e){
@@ -694,7 +816,7 @@ angular.module("richeditor",[])
               }
               else{
                 var result = fn(elem);
-                if(fn(elem)){
+                if(result){
                   return result;
                 }
                 else if(elem.nodeName.toLowerCase()=="body"){
@@ -863,7 +985,8 @@ angular.module("richeditor",[])
                 replaceAtomicLink: function(elem){
                     elem.attr("data-atomic-element",true);
                     elem.addClass("atomic-element")
-                    var str = angular.element('<div>').append(elem.clone()).html();
+                    var str = domNodeToString(elem[0]);
+                    // var str = angular.element('<div>').append(elem.clone()).html();
                     // Use timeout to trigger the $watch
                     $timeout(function(){
                         var elem = angular.element($scope.richEditorApi.capture.elem);
