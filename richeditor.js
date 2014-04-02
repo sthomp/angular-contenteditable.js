@@ -505,12 +505,12 @@ angular.module("richeditor",[])
                             // prevent forwardDelete if deleting past the end of the figcaption
                             e.preventDefault();
                           }
-                          else if(e.keyCode == keycode.enter){
-                            createNewLine();
-                            e.preventDefault();
-                          }
                         }
                       } 
+                      else if(e.keyCode == keycode.enter){
+                        createNewLine();
+                        e.preventDefault();
+                      }
                     }
                   }
 
